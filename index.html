@@ -264,17 +264,22 @@ $('#timerStart').onclick=()=>{if(timerInt){clearInterval(timerInt);timerInt=null
 $('#timerReset').onclick=()=>{clearInterval(timerInt);timerInt=null;timerSec=90;$('#timerDisplay').textContent='01:30';$('#timerStart').textContent='Iniciar'};
 $('#cardioDate').value=iso();$('#weightDate').value=iso();
 $('#cardioForm').onsubmit=e=>{e.preventDefault();data.cardio.push({id:newRecordId(),date:$('#cardioDate').value,type:$('#cardioType').value,duration:+$('#cardioDuration').value,distance:$('#cardioDistance').value?+$('#cardioDistance').value:null,notes:$('#cardioNotes').value});save();e.target.reset();$('#cardioDate').value=iso();renderCardio();toast('Cardio registrado')};
-async function reopenWorkoutSession(sessionId){
-  const entry=(data.workoutEntries||[]).find(x=>x.id===sessionId);if(!entry)return;
-  const otherActive=(data.workoutEntries||[]).find(x=>x.status==='in_progress'&&x.date===iso()&&x.id!==sessionId);
-  if(otherActive){toast('Existe outra sessão de hoje em andamento. Conclua-a antes de editar uma sessão anterior.');return}
-  if(entry.status==='completed'&&!confirm('Editar esta sessão do histórico? Os registros atuais serão mantidos e poderão ser ajustados.'))return;
-  entry.status='in_progress';editingSessionId=entry.id;data.editingSessionId=entry.id;
-  const historyEntry=(data.workoutHistory||[]).find(x=>x.id===entry.id);if(historyEntry)historyEntry.status='in_progress';
-  selectedDay=entry.scheduledDay??entry.day;selectedWorkoutDay=entry.day;
-  const entryWeek=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);const key=entryWeek+'_'+selectedDay;
-  if(!(data.workoutEntries||[]).some(x=>x.id!==entry.id&&x.status==='completed'&&(x.scheduledDay??x.day)===selectedDay&&monday(new Date(x.date+'T12:00:00')).toISOString().slice(0,10)===entryWeek))delete data.completed[key];
-  save();await syncCloudData();renderTraining();renderDashboard();toast('Sessão aberta para edição');
+function saveHistorySet(sessionId,itemIndex,setIndex,field,value){
+ const entry=(data.workoutEntries||[]).find(x=>x.id===sessionId);
+ const historyEntry=(data.workoutHistory||[]).find(x=>x.id===sessionId);
+ if(!entry||!historyEntry)return;
+ entry.logs??={};entry.logs[itemIndex]??=[];
+ entry.logs[itemIndex][setIndex]??={id:newRecordId()};
+ entry.logs[itemIndex][setIndex][field]=value===''?null:Number(value);
+ const item=historyEntry.items[itemIndex];
+ if(item){
+  item.records??=[];
+  const record=item.records.find(x=>x.number===setIndex+1)||{number:setIndex+1,completed:false};
+  record[field==='load'?'load':'reps']=value===''?null:Number(value);
+  if(!item.records.some(x=>x.number===setIndex+1))item.records.push(record);
+  item.records.sort((x,y)=>x.number-y.number);
+ }
+ save();
 }
 function renderHistory(){
  const root=$('#workoutHistory'),allHistory=data.workoutHistory||[];
@@ -286,6 +291,7 @@ function renderHistory(){
  root.replaceChildren();
  if(!history.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhuma sessão registrada para '+dayName+'.';root.append(empty);return}
  history.forEach(session=>{
+   const entry=(data.workoutEntries||[]).find(x=>x.id===session.id);
    const card=document.createElement('article');card.className='card';card.style.marginBottom='10px';
    const head=document.createElement('div');head.className='timerbox';
    const info=document.createElement('div');
@@ -293,17 +299,35 @@ function renderHistory(){
    const meta=document.createElement('p');meta.className='sub';meta.style.fontSize='12px';meta.textContent=fmtDate(session.date)+' · '+(session.type||'Treino');info.append(meta);
    const status=document.createElement('span');status.className='pill';status.textContent=session.status==='completed'?'Concluído':'Em andamento';
    head.append(info,status);card.append(head);
-   const edit=document.createElement('button');edit.className='btn small';edit.style.marginTop='12px';edit.textContent=session.status==='completed'?'Editar sessão':'Abrir sessão';edit.onclick=()=>reopenWorkoutSession(session.id);card.append(edit);
    const details=document.createElement('details');details.style.marginTop='12px';
-   const summary=document.createElement('summary');summary.style.cursor='pointer';summary.className='muted';summary.textContent='Ver exercícios e séries';details.append(summary);
+   const summary=document.createElement('summary');summary.style.cursor='pointer';summary.className='muted';summary.textContent='Editar cargas e repetições';details.append(summary);
    const list=document.createElement('div');list.style.marginTop='10px';
    if(!session.items.length){const p=document.createElement('p');p.className='sub';p.textContent='Sem exercícios detalhados nesta sessão.';list.append(p)}
-   session.items.forEach(item=>{
-     const block=document.createElement('div');block.style.padding='9px 0';block.style.borderTop='1px solid var(--line)';
+   session.items.forEach((item,itemIndex)=>{
+     const block=document.createElement('div');block.style.padding='10px 0';block.style.borderTop='1px solid var(--line)';
      const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=item.name;block.append(name);
-     const sets=document.createElement('p');sets.className='sub';sets.style.fontSize='12px';sets.style.marginTop='4px';
-     sets.textContent=item.records.length?item.records.map(record=>'S'+record.number+': '+(record.load==null?'—':record.load+' kg')+' × '+(record.reps==null?'—':record.reps)+' reps'+(record.completed?' ✓':'')).join(' · '):item.sets+' séries · '+item.repetitions+' reps planejadas';
-     block.append(sets);list.append(block);
+     const count=Math.max(Number(item.sets)||0,(item.records||[]).length);
+     for(let j=0;j<count;j++){
+       const record=(item.records||[]).find(x=>x.number===j+1)||{};
+       const row=document.createElement('div');row.className='setrow';
+       const label=document.createElement('span');label.className='muted';label.textContent='S'+(j+1);row.append(label);
+       const load=document.createElement('input');load.type='number';load.min='0';load.step='.5';load.placeholder='kg';load.setAttribute('aria-label','Carga da série '+(j+1));load.value=record.load??'';row.append(load);
+       const reps=document.createElement('input');reps.type='number';reps.min='1';reps.step='1';reps.placeholder='reps';reps.setAttribute('aria-label','Repetições da série '+(j+1));reps.value=record.reps??'';row.append(reps);
+       const marker=document.createElement('span');marker.className='pill';marker.textContent='Série';row.append(marker);
+       load.onchange=()=>saveHistorySet(session.id,itemIndex,j,'load',load.value);
+       reps.onchange=()=>saveHistorySet(session.id,itemIndex,j,'reps',reps.value);
+       block.append(row);
+     }
+     const add=document.createElement('button');add.className='btn small';add.style.marginTop='9px';add.textContent='Adicionar série';
+     add.onclick=async()=>{
+       if(!entry)return;
+       entry.logs??={};entry.logs[itemIndex]??=[];
+       const next=Math.max(Number(item.sets)||0,(item.records||[]).length,entry.logs[itemIndex].length);
+       entry.logs[itemIndex][next]={id:newRecordId(),load:null,reps:null,done:false};
+       item.records??=[];item.records.push({number:next+1,load:null,reps:null,completed:false});
+       save();await syncCloudData();renderHistory();
+     };
+     block.append(add);list.append(block);
    });
    details.append(list);card.append(details);root.append(card);
  });
