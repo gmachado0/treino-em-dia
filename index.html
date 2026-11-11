@@ -203,7 +203,7 @@ function monday(d=new Date()){let x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.
 function weekKey(){return monday().toISOString().slice(0,10)}
 function doneKey(day){return weekKey()+'_'+day}
 function isDone(day){return !!data.completed[doneKey(day)]}
-function activeWorkout(day=selectedDay){const dayRow=cloudDayRows.find(x=>x.day_number===day+1);return [...(data.workoutEntries||[])].reverse().find(x=>x.day===day&&x.status==='in_progress'&&(!dayRow||x.planDayId===dayRow.id))||null}
+function activeWorkout(day=selectedDay){const dayRow=cloudDayRows.find(x=>x.day_number===day+1);return [...(data.workoutEntries||[])].reverse().find(x=>x.day===day&&x.date===iso()&&x.status==='in_progress'&&(!dayRow||x.planDayId===dayRow.id))||null}
 function startWorkoutEntry(day=selectedDay){const dayRow=cloudDayRows.find(x=>x.day_number===day+1);if(!dayRow){toast('Não foi possível localizar este treino.');return}const entry={id:newRecordId(),day,planDayId:dayRow.id,date:iso(),status:'in_progress',logs:{}};data.workoutEntries??=[];data.workoutEntries.push(entry);data.activeWorkoutId=entry.id;save();renderTraining();toast('Nova sessão iniciada')}
 function weekDone(){return (data.program||[]).filter(p=>isDone(p.day)).length}
 function renderDashboard(){
