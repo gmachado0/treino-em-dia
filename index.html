@@ -243,14 +243,14 @@ function renderTraining(){
  }
  $('#finishWorkout').disabled=!entry;
  $('#finishWorkout').style.display=entry?'inline-block':'none';
- $('#unfinishWorkout').disabled=!(data.workoutEntries||[]).some(x=>x.day===selectedDay&&x.status==='completed');
+ $('#unfinishWorkout').disabled=!(data.workoutEntries||[]).some(x=>x.day===selectedDay&&x.date===iso()&&x.status==='completed');
  $('#unfinishWorkout').style.display=$('#unfinishWorkout').disabled?'none':'inline-block';
 }
 function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();window.scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 $('#startWorkout').onclick=()=>{const current=activeWorkout(selectedDay);if(current)return;startWorkoutEntry(selectedDay)};
 $('#finishWorkout').onclick=async()=>{const entry=activeWorkout(selectedDay);if(!entry||!confirm('Marcar esta sessão como concluída?'))return;entry.status='completed';data.completed[doneKey(selectedDay)]=new Date().toISOString();save();await syncCloudData();await loadCloudData();renderTraining();renderHistory();renderDashboard();toast('Sessão concluída e salva no histórico')};
-$('#unfinishWorkout').onclick=async()=>{const entry=[...(data.workoutEntries||[])].reverse().find(x=>x.day===selectedDay&&x.status==='completed');if(!entry)return;if(!confirm('Reabrir esta sessão para edição?'))return;entry.status='in_progress';delete data.completed[doneKey(selectedDay)];save();await syncCloudData();renderTraining();renderDashboard();toast('Sessão reaberta')};
+$('#unfinishWorkout').onclick=async()=>{const entry=[...(data.workoutEntries||[])].reverse().find(x=>x.day===selectedDay&&x.date===iso()&&x.status==='completed');if(!entry)return;if(!confirm('Reabrir esta sessão para edição?'))return;entry.status='in_progress';if(!(data.workoutEntries||[]).some(x=>x.day===selectedDay&&x.date===iso()&&x.status==='completed'))delete data.completed[doneKey(selectedDay)];save();await syncCloudData();renderTraining();renderDashboard();toast('Sessão reaberta')};
 $('#timerStart').onclick=()=>{if(timerInt){clearInterval(timerInt);timerInt=null;$('#timerStart').textContent='Continuar';return}$('#timerStart').textContent='Pausar';timerInt=setInterval(()=>{timerSec--;$('#timerDisplay').textContent=String(Math.floor(timerSec/60)).padStart(2,'0')+':'+String(timerSec%60).padStart(2,'0');if(timerSec<=0){clearInterval(timerInt);timerInt=null;$('#timerStart').textContent='Iniciar';toast('Intervalo finalizado');timerSec=90}},1000)};
 $('#timerReset').onclick=()=>{clearInterval(timerInt);timerInt=null;timerSec=90;$('#timerDisplay').textContent='01:30';$('#timerStart').textContent='Iniciar'};
 $('#cardioDate').value=iso();$('#weightDate').value=iso();
