@@ -164,6 +164,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     </form>
   </div>
   <div class="card" style="margin-top:12px">
+    <h2>Planejamento de cardio</h2>
+    <p class="sub" style="font-size:12px;margin:5px 0 12px">Altere como o cardio aparece na sua ficha. Atualizar cria uma nova ficha e mantém os treinos anteriores no histórico.</p>
+    <div class="field"><label>Organização do cardio</label><select id="settingsCardioPreference"><option value="nao_incluir">Não incluir cardio na ficha</option><option value="junto">Cardio junto com musculação</option><option value="separado">Cardio em dias separados</option></select></div>
+    <div class="field" id="settingsCardioDaysField" style="display:none;margin-top:10px"><label>Dias de cardio separado por semana</label><select id="settingsCardioDays"><option value="1">1 dia</option><option value="2">2 dias</option><option value="3">3 dias</option></select></div>
+    <button class="btn primary" id="updateCardioPlan" style="margin-top:14px">Salvar e atualizar ficha</button>
+    <p id="cardioPlanMessage" class="muted" style="font-size:12px;margin-top:9px"></p>
+  </div>
+  <div class="card" style="margin-top:12px">
     <h2>Backup e restauração</h2><p class="sub" style="font-size:12px;margin:5px 0 14px">Exporte seus registros para guardar ou transfira-os para outro dispositivo.</p>
     <div class="actions"><button class="btn" id="exportData">Exportar backup da conta</button><button class="btn" id="exportLegacyBackup" style="display:none">Baixar backup antigo do dispositivo</button><label class="btn" for="importFile">Importar backup</label><input class="hidden" type="file" id="importFile" accept="application/json"></div>
   </div>
@@ -344,9 +352,51 @@ function renderCardio(){$('#cardioHistory').innerHTML=data.cardio.length?[...dat
 $('#weightForm').onsubmit=e=>{e.preventDefault();data.weights.push({id:newRecordId(),date:$('#weightDate').value,weight:+$('#weightValue').value,waist:$('#waistValue').value?+$('#waistValue').value:null,hip:$('#hipValue').value?+$('#hipValue').value:null});save();e.target.reset();$('#weightDate').value=iso();renderProgress();toast('Evolução registrada')};
 function renderProgress(){let arr=[...data.weights].sort((a,b)=>a.date.localeCompare(b.date));drawChart(arr);$('#weightHistory').innerHTML=arr.length?[...arr].reverse().map((w,i)=>`<div class="exercise" style="margin-top:8px"><div><h3>${w.weight.toFixed(1).replace('.',',')} kg</h3><p>${fmtDate(w.date)} ${w.waist?'· Cintura '+w.waist+' cm':''} ${w.hip?'· Quadril '+w.hip+' cm':''}</p></div><button class="btn small" data-del-weight="${arr.length-1-i}">Excluir</button></div>`).join(''):'<div class="empty">Nenhum registro.</div>';$('#weightHistory').querySelectorAll('[data-del-weight]').forEach(b=>b.onclick=async()=>{if(data.weights.length<=1){toast('Mantenha ao menos um registro');return}let item=data.weights[+b.dataset.delWeight];if(!await deleteCloudRecord('body_measurements',item))return;data.weights.splice(+b.dataset.delWeight,1);save();renderProgress()})}
 function drawChart(arr){let c=$('#weightChart'),ctx=c.getContext('2d'),w=c.clientWidth||600,h=180,dpr=window.devicePixelRatio||1;c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);if(!arr.length)return;let vals=arr.map(x=>x.weight),min=Math.min(...vals)-2,max=Math.max(...vals)+2;if(max-min<4){min-=2;max+=2}let pad=25;ctx.strokeStyle='#353943';ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(12,y);ctx.lineTo(w-12,y);ctx.stroke()}let pts=arr.map((x,i)=>({x:arr.length===1?w/2:pad+i*(w-2*pad)/(arr.length-1),y:pad+(max-x.weight)/(max-min)*(h-2*pad)}));ctx.strokeStyle='#b8f36b';ctx.lineWidth=3;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();pts.forEach(p=>{ctx.fillStyle='#b8f36b';ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill()});ctx.fillStyle='#9ba1ad';ctx.font='11px system-ui';ctx.fillText(max.toFixed(1)+' kg',12,13);ctx.fillText(min.toFixed(1)+' kg',12,h-5)}
-function fillSettings(){$('#profileName').value=data.profile.name||'';$('#initialWeight').value=data.profile.initialWeight;$('#height').value=data.profile.height;$('#weeklyGoal').value=data.profile.weeklyGoal}
+function fillSettings(){
+ $('#profileName').value=data.profile.name||'';$('#initialWeight').value=data.profile.initialWeight;$('#height').value=data.profile.height;$('#weeklyGoal').value=data.profile.weeklyGoal;
+ const q=data.questionnaire||{};
+ $('#settingsCardioPreference').value=q.cardio_preference||'junto';
+ $('#settingsCardioDays').value=String(q.cardio_days_per_week||2);
+ updateCardioSettingsFields();
+}
+function updateCardioSettingsFields(){
+ const separate=$('#settingsCardioPreference').value==='separado';
+ $('#settingsCardioDaysField').style.display=separate?'block':'none';
+ const q=data.questionnaire||{},max=Math.max(1,7-Number(q.days_per_week||3));
+ const select=$('#settingsCardioDays');
+ Array.from(select.options).forEach(option=>{option.disabled=Number(option.value)>max});
+ if(Number(select.value)>max)select.value=String(max);
+}
+$('#settingsCardioPreference').addEventListener('change',updateCardioSettingsFields);
+$('#settingsCardioDays').addEventListener('change',updateCardioSettingsFields);
 $('#settingsBtn').onclick=()=>openTab('settings');
 $('#profileForm').onsubmit=e=>{e.preventDefault();data.profile={name:$('#profileName').value,initialWeight:+$('#initialWeight').value,height:+$('#height').value,weeklyGoal:+$('#weeklyGoal').value};save();toast('Perfil atualizado')};
+$('#updateCardioPlan').onclick=async()=>{
+ const btn=$('#updateCardioPlan'),msg=$('#cardioPlanMessage');
+ if(!currentUser||!window.cloudReady){msg.textContent='Entre na sua conta para atualizar a ficha.';return}
+ if(!confirm('Criar uma nova ficha com essa organização de cardio? Seus treinos e registros anteriores serão mantidos no histórico.'))return;
+ btn.disabled=true;msg.textContent='Atualizando a ficha...';
+ try{
+  const {data:q,error:qErr}=await cloud.from('questionnaires').select('*').eq('user_id',currentUser.id).single();
+  if(qErr)throw qErr;
+  const updated={...q,cardio_preference:$('#settingsCardioPreference').value,cardio_days_per_week:Number($('#settingsCardioDays').value),updated_at:new Date().toISOString()};
+  const {error:saveErr}=await cloud.from('questionnaires').upsert(updated,{onConflict:'user_id'});
+  if(saveErr)throw saveErr;
+  const {error:deactivateErr}=await cloud.from('workout_plans').update({active:false}).eq('user_id',currentUser.id).eq('active',true);
+  if(deactivateErr)throw deactivateErr;
+  data.questionnaire=updated;
+  await createCloudPlan(updated);
+  data.profile.weeklyGoal=data.program.length;
+  await syncCloudData();
+  await loadCloudData();
+  data.profile.weeklyGoal=data.program.length;
+  localStorage.setItem('treinoEmDia',JSON.stringify(data));
+  renderDashboard();renderTraining();renderHistory();fillSettings();
+  msg.textContent='Nova ficha criada. O histórico anterior foi preservado.';
+  toast('Ficha atualizada');
+ }catch(err){msg.textContent='Não foi possível atualizar a ficha: '+(err.message||'erro desconhecido')}
+ finally{btn.disabled=false}
+};
 $('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='treino-em-dia-backup-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exportado')};
 $('#exportLegacyBackup').style.display=localStorage.getItem('treinoEmDia_legacy_backup')?'inline-block':'none';
 $('#exportLegacyBackup').onclick=()=>{const raw=localStorage.getItem('treinoEmDia_legacy_backup');if(!raw)return;const a=document.createElement('a'),blob=new Blob([raw],{type:'application/json'});a.href=URL.createObjectURL(blob);a.download='treino-em-dia-backup-antigo-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href)};
@@ -561,7 +611,7 @@ async function loadCloudData(){
   ]);
   for(const x of [profileRes,qRes,planRes,measureRes,cardioRes,sessionsRes,setsRes,allDaysRes,allItemsRes])if(x.error)throw x.error;
   const profile=profileRes.data||{},q=qRes.data;
-  data.profile={name:profile.display_name||'',initialWeight:profile.initial_weight_kg||0,height:profile.height_cm||0,weeklyGoal:profile.weekly_goal||q?.days_per_week||3};
+  data.profile={name:profile.display_name||'',initialWeight:profile.initial_weight_kg||0,height:profile.height_cm||0,weeklyGoal:profile.weekly_goal||q?.days_per_week||3};data.questionnaire=q||null;
   data.weights=(measureRes.data||[]).map(x=>({id:x.id,date:x.measurement_date,weight:Number(x.weight_kg),waist:x.waist_cm?Number(x.waist_cm):null,hip:x.hip_cm?Number(x.hip_cm):null}));
   data.cardio=(cardioRes.data||[]).map(x=>({id:x.id,date:x.session_date,type:x.modality,duration:x.duration_min,distance:x.distance_km?Number(x.distance_km):null,notes:x.notes||''}));
   const legacyLogs=data.logs||{},legacyCompleted=data.completed||{},localEntries=data.workoutEntries||[];
