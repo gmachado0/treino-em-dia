@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101114">
 <meta name="description" content="Acompanhe seus treinos, cargas, cardio e evolução.">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <title>Treino em Dia</title>
 <style>
@@ -21,13 +22,69 @@ h1{font-size:clamp(27px,5vw,38px);line-height:1.1;letter-spacing:-1.2px;margin:0
 .timerbox{display:flex;align-items:center;justify-content:space-between;gap:12px}.timer{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px}.muted{color:var(--muted)}.empty{padding:28px;text-align:center;color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-weight:600}.chart{height:180px;width:100%;display:block}.notice{border:1px solid #4d6035;background:#20271b;color:#d8efbd;padding:12px 14px;border-radius:13px;font-size:13px;margin-top:13px}.danger{color:var(--danger)}.actions{display:flex;gap:8px;flex-wrap:wrap}.hidden{display:none!important}
 @media(max-width:650px){.app{padding:17px 14px 100px}.grid{gap:8px}.stat{padding:13px}.stat strong{font-size:23px}.week{gap:6px}.day{padding:10px 7px;min-height:88px}.day strong{font-size:11px}.day em{font-size:10px}.tabs button{padding:7px 9px;min-width:58px}.exercise{padding:13px}.setrow{grid-template-columns:35px 1fr 1fr 38px}.top{margin-bottom:21px}}
+
+#authGate{min-height:100vh;display:grid;place-items:center;padding:22px;background:var(--bg)}
+.auth-card{width:min(100%,480px);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px}
+.auth-card h1{font-size:28px;margin:12px 0 6px}.auth-card .field{margin-top:12px}
+.auth-card .btn{width:100%;margin-top:12px}.auth-switch{display:flex;gap:8px;margin:16px 0}.auth-switch button{flex:1}
+#authMessage{font-size:13px;color:var(--muted);margin-top:12px;min-height:20px}
+#onboarding{display:none;position:fixed;inset:0;z-index:30;overflow:auto;background:var(--bg);padding:22px}
+.onboard-wrap{width:min(100%,680px);margin:24px auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px}
+.onboard-wrap h1{font-size:28px;margin:10px 0}.onboard-wrap .field{margin-top:14px}
+.checkgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+.checkitem{display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px}
+.checkitem input{width:auto;accent-color:var(--accent)}
+#cloudAccount{display:none;align-items:center;gap:8px}
+@media(max-width:600px){.auth-card,.onboard-wrap{padding:18px}.checkgrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<div id="authGate">
+  <div class="auth-card">
+    <div class="brand"><div class="logo">T</div><div><strong>TREINO EM DIA</strong><small>Consistência acima da intensidade</small></div></div>
+    <h1 id="authTitle">Entre na sua conta</h1>
+    <p class="sub" id="authIntro">Acesse seus treinos e acompanhe sua evolução em qualquer dispositivo.</p>
+    <div class="auth-switch"><button class="btn primary" id="showLogin">Entrar</button><button class="btn" id="showSignup">Criar conta</button></div>
+    <form id="authForm">
+      <div class="field"><label>E-mail</label><input type="email" id="authEmail" autocomplete="email" required placeholder="seu@email.com"></div>
+      <div class="field"><label>Senha</label><input type="password" id="authPassword" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></div>
+      <button class="btn primary" id="authSubmit">Entrar</button>
+    </form>
+    <button class="btn" id="forgotPassword">Esqueci minha senha</button>
+    <div id="authMessage"></div>
+  </div>
+</div>
+<div id="onboarding">
+  <div class="onboard-wrap">
+    <p class="eyebrow">Configuração inicial</p><h1>Vamos montar seu treino.</h1>
+    <p class="sub">Responda algumas perguntas para gerar uma programação inicial. Você poderá ajustar sua rotina depois.</p>
+    <form id="questionnaireForm">
+      <div class="field"><label>Qual é seu principal objetivo?</label><select id="qObjective" required><option value="emagrecimento">Emagrecimento</option><option value="hipertrofia">Hipertrofia / ganho de massa</option><option value="condicionamento">Condicionamento físico</option><option value="saude">Saúde e qualidade de vida</option></select></div>
+      <div class="field"><label>Como você classifica sua experiência?</label><select id="qExperience" required><option value="iniciante">Iniciante</option><option value="intermediario">Intermediário</option><option value="avancado">Avançado</option></select></div>
+      <div class="formrow">
+        <div class="field"><label>Quantos dias por semana?</label><select id="qDays"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
+        <div class="field"><label>Duração por sessão</label><select id="qDuration"><option value="30">30 minutos</option><option value="45" selected>45 minutos</option><option value="60">60 minutos</option><option value="90">90 minutos</option></select></div>
+      </div>
+      <div class="field"><label>Onde você pretende treinar?</label><select id="qLocation"><option value="academia">Academia</option><option value="casa">Em casa</option><option value="ar_livre">Ao ar livre</option><option value="misto">Locais variados</option></select></div>
+      <div class="field"><label>Quais equipamentos você tem disponíveis?</label><div class="checkgrid">
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Máquina" checked> Máquinas</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Halteres" checked> Halteres</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Cabo e polia" checked> Cabos e polias</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Peso corporal" checked> Peso corporal</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Esteira"> Esteira</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Bicicleta ergométrica"> Bicicleta</label>
+      </div></div>
+      <div class="field"><label>Alguma limitação, lesão ou movimento que você precisa evitar? (opcional)</label><input id="qLimitations" maxlength="500" placeholder="Descreva ou deixe em branco"></div>
+      <div class="field"><label>Idade (opcional)</label><input type="number" id="qAge" min="13" max="100" placeholder="Sua idade"></div>
+      <button class="btn primary" id="generatePlanBtn">Salvar respostas e gerar meu treino</button>
+      <div id="onboardingMessage" class="muted" style="font-size:13px;margin-top:12px"></div>
+    </form>
+  </div>
+</div>
 <div class="app">
 <header class="top">
   <div class="brand"><div class="logo">T</div><div><strong>TREINO EM DIA</strong><small>Consistência acima da intensidade</small></div></div>
-  <button class="iconbtn" id="settingsBtn" aria-label="Configurações">⚙</button>
+  <div id="cloudAccount"><span id="accountEmail" class="muted" style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis"></span><button class="iconbtn" id="logoutBtn" aria-label="Sair da conta">Sair</button></div><button class="iconbtn" id="settingsBtn" aria-label="Configurações">⚙</button>
 </header>
 
 <section id="dashboard" class="view active">
@@ -121,7 +178,7 @@ const fresh=()=>({profile:{name:'',initialWeight:105,height:173,weeklyGoal:5},we
 let data;try{data=JSON.parse(localStorage.getItem('treinoEmDia')||'null')||fresh()}catch{data=fresh()}
 if(!data.program)data.program=defaultProgram;
 let selectedDay=0,timerSec=90,timerInt=null;
-function save(){localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard()}
+function save(){localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard();if(window.cloudReady)scheduleCloudSync()}
 function toast(msg){let t=$('#toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2200)}
 function fmtDate(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-BR')}
 function monday(d=new Date()){let x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-(x.getDay()+6)%7);return x}
@@ -175,6 +232,218 @@ $('#profileForm').onsubmit=e=>{e.preventDefault();data.profile={name:$('#profile
 $('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='treino-em-dia-backup-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exportado')};
 $('#importFile').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(!d.profile||!d.weights||!d.program)throw Error();if(confirm('Substituir os dados atuais pelo backup?')){data=d;save();renderProgress();renderCardio();fillSettings();toast('Backup restaurado')}}catch{alert('Arquivo de backup inválido.')}e.target.value=''};r.readAsText(f)};
 $('#resetData').onclick=()=>{if(confirm('Apagar todos os dados salvos neste dispositivo? Esta ação não pode ser desfeita.')){data=fresh();save();renderDashboard();toast('Aplicativo reiniciado')}};
+
+const SUPABASE_URL = "https://ndmsxrbsyifremblocney.supabase.co";
+const SUPABASE_KEY = "sb_publishable_4YHXb4Nw7bwDfbhz7lg4vg_h9nIGuXz";
+const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.cloudReady = false;
+let currentUser = null, cloudDayRows = [], syncTimer = null, syncQueue = Promise.resolve();
+let authMode = 'login';
+const authGate = $('#authGate');
+function authMessage(msg){$('#authMessage').textContent=msg||''}
+function showAuth(mode){
+  authMode=mode;
+  $('#authTitle').textContent=mode==='signup'?'Criar sua conta':'Entre na sua conta';
+  $('#authIntro').textContent=mode==='signup'?'Crie uma conta para salvar seus treinos na nuvem.':'Acesse seus treinos e acompanhe sua evolução em qualquer dispositivo.';
+  $('#authSubmit').textContent=mode==='signup'?'Criar conta':'Entrar';
+  $('#authPassword').autocomplete=mode==='signup'?'new-password':'current-password';
+  $('#showLogin').classList.toggle('primary',mode==='login');$('#showSignup').classList.toggle('primary',mode==='signup');
+  authMessage('');
+}
+$('#showLogin').onclick=()=>showAuth('login');
+$('#showSignup').onclick=()=>showAuth('signup');
+$('#authForm').onsubmit=async e=>{
+  e.preventDefault();const email=$('#authEmail').value.trim(),password=$('#authPassword').value;
+  $('#authSubmit').disabled=true;authMessage('Aguarde...');
+  try{
+    if(authMode==='signup'){
+      const {data:res,error}=await cloud.auth.signUp({email,password});
+      if(error)throw error;
+      if(!res.session){authMessage('Conta criada. Confirme seu e-mail pelo link enviado para entrar.');}
+      else authMessage('Conta criada. Preparando seu perfil...');
+    }else{
+      const {error}=await cloud.auth.signInWithPassword({email,password});if(error)throw error;
+    }
+  }catch(err){authMessage(err.message||'Não foi possível autenticar.')}
+  finally{$('#authSubmit').disabled=false}
+};
+$('#forgotPassword').onclick=async()=>{
+  const email=$('#authEmail').value.trim();if(!email){authMessage('Informe seu e-mail primeiro.');return}
+  const {error}=await cloud.auth.resetPasswordForEmail(email,{redirectTo:location.href});
+  authMessage(error?error.message:'Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.');
+};
+$('#logoutBtn').onclick=async()=>{await cloud.auth.signOut();location.reload()};
+function setAppVisible(visible){
+  authGate.style.display=visible?'none':'grid';
+  document.querySelector('.app').style.display=visible?'block':'none';
+  document.querySelector('.tabs').style.display=visible?'flex':'none';
+  $('#cloudAccount').style.display=visible?'flex':'none';
+}
+function showOnboarding(show){$('#onboarding').style.display=show?'block':'none';}
+function readQuestionnaire(){
+  return {
+    objective:$('#qObjective').value,
+    experience_level:$('#qExperience').value,
+    days_per_week:+$('#qDays').value,
+    session_duration_min:+$('#qDuration').value,
+    training_location:$('#qLocation').value,
+    available_equipment:Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(x=>x.value),
+    limitations:$('#qLimitations').value.trim()||null,
+    age:$('#qAge').value?+$('#qAge').value:null
+  };
+}
+function equipmentAllowed(ex,q){
+  if(ex.equipment==='Nenhum'||ex.equipment==='Peso corporal')return true;
+  if(q.training_location==='academia'||q.training_location==='misto')return q.available_equipment.includes(ex.equipment)||['Máquina','Cabo e polia','Halteres'].includes(ex.equipment);
+  return q.available_equipment.includes(ex.equipment);
+}
+function makePlan(exercises,q){
+  const usable=exercises.filter(e=>e.exercise_type==='strength'&&equipmentAllowed(e,q));
+  const groups=['Pernas','Quadríceps','Posterior de coxa','Glúteos','Peito','Costas','Ombros','Bíceps','Tríceps','Abdômen','Panturrilhas'];
+  const byGroup=g=>usable.filter(e=>e.muscle_group.toLowerCase().includes(g.toLowerCase()));
+  const selected=[];
+  const targetCount=q.session_duration_min<=30?4:q.session_duration_min<=45?5:7;
+  for(let d=0;d<q.days_per_week;d++){
+    const picks=[],used=new Set();
+    const order=d%2===0?['Pernas','Peito','Costas','Ombros','Abdômen','Posterior de coxa','Glúteos']:['Quadríceps','Costas','Peito','Glúteos','Bíceps','Tríceps','Panturrilhas'];
+    for(const g of order){
+      const candidates=byGroup(g).filter(e=>!used.has(e.id));
+      if(candidates.length){const ex=candidates[(d+selected.length)%candidates.length];picks.push(ex);used.add(ex.id)}
+      if(picks.length>=targetCount)break;
+    }
+    for(const ex of usable){if(picks.length>=targetCount)break;if(!used.has(ex.id)){picks.push(ex);used.add(ex.id)}}
+    selected.push({day:d,short:['SEG','TER','QUA','QUI','SEX','SÁB'][d],name:'Treino '+String.fromCharCode(65+d),type:'Musculação',items:picks.map(ex=>[ex.name,q.experience_level==='iniciante'?2:3,q.experience_level==='iniciante'?'10–12':'8–12',ex.muscle_group]),exerciseIds:picks.map(ex=>ex.id)});
+  }
+  return selected;
+}
+async function createCloudPlan(q){
+  const {data:exercises,error:exErr}=await cloud.from('exercises').select('id,name,muscle_group,equipment,exercise_type,instructions').eq('active',true);
+  if(exErr)throw exErr;
+  const program=makePlan(exercises||[],q);
+  if(!program.length||!program.some(p=>p.items.length))throw new Error('Não encontramos exercícios compatíveis com os equipamentos selecionados. Revise suas opções.');
+  const {data:plan,error:planErr}=await cloud.from('workout_plans').insert({user_id:currentUser.id,title:'Plano personalizado',objective:q.objective,active:true}).select().single();
+  if(planErr)throw planErr;
+  const dayRows=program.map(p=>({user_id:currentUser.id,plan_id:plan.id,day_number:p.day+1,title:p.name,training_type:p.type,cardio_description:null}));
+  const {data:days,error:dayErr}=await cloud.from('workout_days').insert(dayRows).select();
+  if(dayErr)throw dayErr;
+  cloudDayRows=days;
+  const rows=[];
+  program.forEach((p,i)=>p.items.forEach((it,j)=>rows.push({user_id:currentUser.id,workout_day_id:days.find(x=>x.day_number===i+1).id,exercise_id:p.exerciseIds[j],exercise_name:it[0],sets:it[1],repetitions:it[2],order_number:j+1})));
+  if(rows.length){const {error}=await cloud.from('workout_exercises').insert(rows);if(error)throw error}
+  data.program=program;return program;
+}
+async function saveQuestionnaire(q){
+  const {error:qErr}=await cloud.from('questionnaires').upsert({user_id:currentUser.id,...q,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(qErr)throw qErr;
+  const {error:pErr}=await cloud.from('profiles').upsert({id:currentUser.id,display_name:currentUser.email?.split('@')[0]||'Usuário',weekly_goal:q.days_per_week,updated_at:new Date().toISOString()},{onConflict:'id'});
+  if(pErr)throw pErr;
+}
+$('#questionnaireForm').onsubmit=async e=>{
+  e.preventDefault();$('#generatePlanBtn').disabled=true;$('#onboardingMessage').textContent='Salvando respostas e montando sua ficha...';
+  try{
+    const q=readQuestionnaire();if(!q.available_equipment.length)throw new Error('Selecione pelo menos um equipamento.');
+    await saveQuestionnaire(q);await createCloudPlan(q);
+    data.profile.weeklyGoal=q.days_per_week;window.cloudReady=true;await syncCloudData();
+    showOnboarding(false);setAppVisible(true);renderDashboard();renderTraining();toast('Seu treino personalizado foi criado.');
+  }catch(err){$('#onboardingMessage').textContent=err.message||'Não foi possível gerar o treino.'}
+  finally{$('#generatePlanBtn').disabled=false}
+};
+async function loadCloudData(){
+  const [profileRes,qRes,planRes,measureRes,cardioRes,sessionsRes,setsRes]=await Promise.all([
+    cloud.from('profiles').select('*').eq('id',currentUser.id).maybeSingle(),
+    cloud.from('questionnaires').select('*').eq('user_id',currentUser.id).maybeSingle(),
+    cloud.from('workout_plans').select('*').eq('user_id',currentUser.id).eq('active',true).order('generated_at',{ascending:false}).limit(1).maybeSingle(),
+    cloud.from('body_measurements').select('*').eq('user_id',currentUser.id).order('measurement_date'),
+    cloud.from('cardio_sessions').select('*').eq('user_id',currentUser.id).order('session_date'),
+    cloud.from('workout_sessions').select('*').eq('user_id',currentUser.id),
+    cloud.from('exercise_sets').select('*').eq('user_id',currentUser.id)
+  ]);
+  for(const x of [profileRes,qRes,planRes,measureRes,cardioRes,sessionsRes,setsRes])if(x.error)throw x.error;
+  const profile=profileRes.data||{},q=qRes.data;
+  data.profile={name:profile.display_name||'',initialWeight:profile.initial_weight_kg||0,height:profile.height_cm||0,weeklyGoal:profile.weekly_goal||q?.days_per_week||3};
+  data.weights=(measureRes.data||[]).map(x=>({date:x.measurement_date,weight:Number(x.weight_kg),waist:x.waist_cm?Number(x.waist_cm):null,hip:x.hip_cm?Number(x.hip_cm):null}));
+  data.cardio=(cardioRes.data||[]).map(x=>({date:x.session_date,type:x.modality,duration:x.duration_min,distance:x.distance_km?Number(x.distance_km):null,notes:x.notes||''}));
+  data.completed={};data.logs={};
+  if(planRes.data){
+    const {data:days,error}=await cloud.from('workout_days').select('*').eq('user_id',currentUser.id).eq('plan_id',planRes.data.id).order('day_number');
+    if(error)throw error;cloudDayRows=days||[];
+    const {data:items,error:itemErr}=await cloud.from('workout_exercises').select('*').eq('user_id',currentUser.id).order('order_number');
+    if(itemErr)throw itemErr;
+    data.program=cloudDayRows.map(d=>{
+      const its=(items||[]).filter(x=>x.workout_day_id===d.id);
+      return {day:d.day_number-1,short:['SEG','TER','QUA','QUI','SEX','SÁB'][d.day_number-1]||'DIA',name:d.title,type:d.training_type,cardio:d.cardio_description,items:its.map(x=>[x.exercise_name,x.sets,x.repetitions,'']),exerciseIds:its.map(x=>x.exercise_id)};
+    });
+    if(!data.program.length)data.program=defaultProgram;
+  }else data.program=[];
+  const sessionById={};
+  (sessionsRes.data||[]).forEach(s=>{
+    sessionById[s.id]=s;
+    if(s.status==='completed'&&s.workout_day_id){
+      const day=cloudDayRows.find(d=>d.id===s.workout_day_id);
+      if(day){const wk=new Date(s.session_date+'T12:00:00');wk.setDate(wk.getDate()-(wk.getDay()+6)%7);data.completed[wk.toISOString().slice(0,10)+'_'+(day.day_number-1)]=s.created_at||s.session_date}
+    }
+  });
+  (setsRes.data||[]).forEach(s=>{
+    const session=sessionById[s.session_id];if(!session)return;
+    const day=cloudDayRows.find(d=>d.id===session.workout_day_id);if(!day)return;
+    const p=data.program.find(x=>x.day===day.day_number-1);if(!p)return;
+    const idx=p.items.findIndex(x=>x[0]===s.exercise_name);if(idx<0)return;
+    const key=day.day_number-1+'_'+idx;data.logs[key]??=[];data.logs[key][s.set_number-1]={load:s.load_kg,reps:s.repetitions,done:s.completed};
+  });
+  if(!data.weights.length&&profile.initial_weight_kg)data.weights=[{date:iso(),weight:Number(profile.initial_weight_kg),waist:null,hip:null}];
+  if(q){$('#qObjective').value=q.objective;$('#qExperience').value=q.experience_level;$('#qDays').value=String(q.days_per_week);$('#qDuration').value=String(q.session_duration_min);$('#qLocation').value=q.training_location;$('#qLimitations').value=q.limitations||'';$('#qAge').value=q.age||''}
+}
+async function syncCloudData(){
+  if(!currentUser)return;
+  syncQueue=syncQueue.then(async()=>{
+    const uid=currentUser.id;
+    const {error:profileErr}=await cloud.from('profiles').upsert({id:uid,display_name:data.profile.name||currentUser.email?.split('@')[0]||'Usuário',height_cm:data.profile.height||null,initial_weight_kg:data.profile.initialWeight||null,weekly_goal:data.profile.weeklyGoal,updated_at:new Date().toISOString()},{onConflict:'id'});
+    if(profileErr)throw profileErr;
+    const {error:delM}=await cloud.from('body_measurements').delete().eq('user_id',uid);if(delM)throw delM;
+    if(data.weights.length){const {error}=await cloud.from('body_measurements').insert(data.weights.map(w=>({user_id:uid,measurement_date:w.date,weight_kg:w.weight,waist_cm:w.waist||null,hip_cm:w.hip||null})));if(error)throw error}
+    const {error:delC}=await cloud.from('cardio_sessions').delete().eq('user_id',uid);if(delC)throw delC;
+    if(data.cardio.length){const {error}=await cloud.from('cardio_sessions').insert(data.cardio.map(c=>({user_id:uid,session_date:c.date,modality:c.type,duration_min:c.duration,distance_km:c.distance||null,notes:c.notes||null})));if(error)throw error}
+    const {error:delS}=await cloud.from('exercise_sets').delete().eq('user_id',uid);if(delS)throw delS;
+    const {error:delW}=await cloud.from('workout_sessions').delete().eq('user_id',uid);if(delW)throw delW;
+    const sessions=[];
+    Object.keys(data.completed||{}).forEach(k=>{
+      const parts=k.split('_'),week=parts[0],day=+parts[1],d=new Date(week+'T12:00:00');d.setDate(d.getDate()+day);
+      const dayRow=cloudDayRows.find(x=>x.day_number===day+1);if(dayRow)sessions.push({user_id:uid,workout_day_id:dayRow.id,session_date:d.toISOString().slice(0,10),status:'completed'});
+    });
+    const currentWeek=monday().toISOString().slice(0,10);
+    const loggedDays=new Set(Object.keys(data.logs||{}).filter(k=>(data.logs[k]||[]).some(s=>s&&((s.load!==undefined&&s.load!=='')||(s.reps!==undefined&&s.reps!=='')||s.done))).map(k=>+k.split('_')[0]));
+    loggedDays.forEach(day=>{if(!sessions.some(s=>s.session_date===new Date(new Date(currentWeek+'T12:00:00').getTime()+day*86400000).toISOString().slice(0,10))){const dayRow=cloudDayRows.find(x=>x.day_number===day+1);if(dayRow){const d=new Date(currentWeek+'T12:00:00');d.setDate(d.getDate()+day);sessions.push({user_id:uid,workout_day_id:dayRow.id,session_date:d.toISOString().slice(0,10),status:'in_progress'})}}});
+    let inserted=[];
+    if(sessions.length){const {data:rows,error}=await cloud.from('workout_sessions').insert(sessions).select();if(error)throw error;inserted=rows||[]}
+    const setRows=[];
+    inserted.forEach(s=>{
+      const day=cloudDayRows.find(x=>x.id===s.workout_day_id);if(!day)return;
+      const isCurrent=s.session_date>=currentWeek;
+      if(!isCurrent)return;
+      const p=data.program.find(x=>x.day===day.day_number-1);if(!p)return;
+      p.items.forEach((it,i)=>(data.logs[day.day_number-1+'_'+i]||[]).forEach((v,j)=>{if(v&&(v.load!==undefined&&v.load!==''||v.reps!==undefined&&v.reps!==''||v.done))setRows.push({user_id:uid,session_id:s.id,exercise_name:it[0],set_number:j+1,load_kg:v.load===''?null:(v.load??null),repetitions:v.reps===''?null:(v.reps??null),completed:!!v.done})}));
+    });
+    if(setRows.length){const {error}=await cloud.from('exercise_sets').insert(setRows);if(error)throw error}
+  }).catch(err=>{console.error('Cloud sync:',err);toast('Falha ao sincronizar. Verifique sua conexão.')});
+  return syncQueue;
+}
+function scheduleCloudSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncCloudData(),900)}
+async function startCloudSession(session){
+  if(!session){currentUser=null;window.cloudReady=false;setAppVisible(false);showOnboarding(false);return}
+  currentUser=session.user;$('#accountEmail').textContent=currentUser.email||'Conta';
+  try{
+    await loadCloudData();
+    const {data:q,error}=await cloud.from('questionnaires').select('user_id').eq('user_id',currentUser.id).maybeSingle();if(error)throw error;
+    if(!q){setAppVisible(false);showOnboarding(true);return}
+    if(!data.program.length){await createCloudPlan((await cloud.from('questionnaires').select('*').eq('user_id',currentUser.id).single()).data)}
+    window.cloudReady=true;
+    setAppVisible(true);showOnboarding(false);
+    localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard();renderTraining();renderCardio();renderProgress();fillSettings();
+  }catch(err){setAppVisible(false);authMessage('Erro ao carregar seus dados: '+(err.message||'tente novamente'))}
+}
+cloud.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>startCloudSession(session),0)});
+(async()=>{const {data:{session}}=await cloud.auth.getSession();await startCloudSession(session)})();
+
 renderDashboard();fillSettings();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
