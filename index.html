@@ -120,7 +120,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   <div class="card" style="margin-bottom:12px"><div class="timerbox"><div><span class="eyebrow">Descanso entre séries</span><div class="timer" id="timerDisplay">01:30</div></div><div class="actions"><button class="btn small" id="timerStart">Iniciar</button><button class="btn small" id="timerReset">Resetar</button></div></div></div>
   <div class="actions" id="sessionControls" style="margin:12px 0;align-items:end"><div class="field" style="max-width:260px;min-width:180px"><label for="sessionWorkoutChoice">Treino desta sessão</label><select id="sessionWorkoutChoice"></select></div><button class="btn primary" id="startWorkout">Iniciar sessão</button></div>
   <div id="exerciseList" class="workout-list"></div>
-  <div class="actions" style="margin-top:15px"><button class="btn primary" id="finishWorkout">Concluir sessão</button><button class="btn" id="unfinishWorkout">Reabrir sessão</button></div>
+  <div class="actions" style="margin-top:15px"><button class="btn primary" id="finishWorkout">Concluir sessão</button></div>
   <div id="workoutHistorySection" style="margin-top:27px"><div class="sectionhead"><h2 id="workoutHistoryTitle">Histórico de segunda-feira</h2><span class="pill" id="workoutHistoryCount">0 sessões</span></div>
   <p class="sub" style="font-size:12px;margin:0 0 10px 2px">Sessões realizadas neste dia programado.</p>
   <div id="workoutHistory" class="workout-list"><div class="empty">Carregando histórico...</div></div></div>
@@ -254,23 +254,20 @@ function renderTraining(){
  }
  $('#finishWorkout').disabled=!entry;
  $('#finishWorkout').style.display=entry?'inline-block':'none';
- $('#unfinishWorkout').disabled=!(data.workoutEntries||[]).some(x=>(x.scheduledDay??x.day)===selectedDay&&x.date===iso()&&x.status==='completed');
- $('#unfinishWorkout').style.display=$('#unfinishWorkout').disabled?'none':'inline-block';
  renderHistory();
 }
 function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();window.scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 $('#startWorkout').onclick=()=>{const current=activeWorkout(selectedDay);if(current)return;startWorkoutEntry(selectedDay,selectedWorkoutDay)};
 $('#finishWorkout').onclick=async()=>{const entry=activeWorkout(selectedDay);if(!entry||!confirm('Marcar esta sessão como concluída?'))return;entry.status='completed';const entryWeek=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);data.completed[entryWeek+'_'+(entry.scheduledDay??entry.day)]=entry.date;editingSessionId=null;delete data.editingSessionId;save();await syncCloudData();await loadCloudData();renderTraining();renderHistory();renderDashboard();toast('Sessão concluída e salva no histórico')};
-$('#unfinishWorkout').onclick=async()=>{const entry=[...(data.workoutEntries||[])].reverse().find(x=>(x.scheduledDay??x.day)===selectedDay&&x.date===iso()&&x.status==='completed');if(!entry)return;await reopenWorkoutSession(entry.id)};
 $('#timerStart').onclick=()=>{if(timerInt){clearInterval(timerInt);timerInt=null;$('#timerStart').textContent='Continuar';return}$('#timerStart').textContent='Pausar';timerInt=setInterval(()=>{timerSec--;$('#timerDisplay').textContent=String(Math.floor(timerSec/60)).padStart(2,'0')+':'+String(timerSec%60).padStart(2,'0');if(timerSec<=0){clearInterval(timerInt);timerInt=null;$('#timerStart').textContent='Iniciar';toast('Intervalo finalizado');timerSec=90}},1000)};
 $('#timerReset').onclick=()=>{clearInterval(timerInt);timerInt=null;timerSec=90;$('#timerDisplay').textContent='01:30';$('#timerStart').textContent='Iniciar'};
 $('#cardioDate').value=iso();$('#weightDate').value=iso();
 $('#cardioForm').onsubmit=e=>{e.preventDefault();data.cardio.push({id:newRecordId(),date:$('#cardioDate').value,type:$('#cardioType').value,duration:+$('#cardioDuration').value,distance:$('#cardioDistance').value?+$('#cardioDistance').value:null,notes:$('#cardioNotes').value});save();e.target.reset();$('#cardioDate').value=iso();renderCardio();toast('Cardio registrado')};
 async function reopenWorkoutSession(sessionId){
   const entry=(data.workoutEntries||[]).find(x=>x.id===sessionId);if(!entry)return;
-  const otherActive=(data.workoutEntries||[]).find(x=>x.status==='in_progress'&&x.id!==sessionId);
-  if(otherActive){toast('Conclua ou finalize a sessão em andamento antes de editar outra.');return}
+  const otherActive=(data.workoutEntries||[]).find(x=>x.status==='in_progress'&&x.date===iso()&&x.id!==sessionId);
+  if(otherActive){toast('Existe outra sessão de hoje em andamento. Conclua-a antes de editar uma sessão anterior.');return}
   if(entry.status==='completed'&&!confirm('Editar esta sessão do histórico? Os registros atuais serão mantidos e poderão ser ajustados.'))return;
   entry.status='in_progress';editingSessionId=entry.id;data.editingSessionId=entry.id;
   const historyEntry=(data.workoutHistory||[]).find(x=>x.id===entry.id);if(historyEntry)historyEntry.status='in_progress';
