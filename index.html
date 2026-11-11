@@ -52,6 +52,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
       <button class="btn primary" id="authSubmit">Entrar</button>
     </form>
     <button class="btn" id="forgotPassword">Esqueci minha senha</button>
+    <button class="btn" id="resendConfirmation" type="button">Reenviar e-mail de confirmação</button>
     <div id="authMessage"></div>
   </div>
 </div>
@@ -272,6 +273,17 @@ $('#authForm').onsubmit=async e=>{
     }
   }catch(err){authMessage(err.message||'Não foi possível autenticar.')}
   finally{$('#authSubmit').disabled=false}
+};
+$('#resendConfirmation').onclick=async()=>{
+  const email=$('#authEmail').value.trim();
+  if(!email){authMessage('Informe seu e-mail primeiro.');return}
+  const btn=$('#resendConfirmation');btn.disabled=true;authMessage('Solicitando novo e-mail...');
+  try{
+    const {error}=await cloud.auth.resend({type:'signup',email,options:{emailRedirectTo:'https://gmachado0.github.io/treino-em-dia/'}});
+    if(error)throw error;
+    authMessage('Solicitação enviada. Verifique sua caixa de entrada e a pasta de spam.');
+  }catch(err){authMessage(err.message||'Não foi possível reenviar o e-mail.')}
+  finally{btn.disabled=false}
 };
 $('#forgotPassword').onclick=async()=>{
   const email=$('#authEmail').value.trim();if(!email){authMessage('Informe seu e-mail primeiro.');return}
