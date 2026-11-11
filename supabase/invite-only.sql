@@ -21,7 +21,7 @@ create or replace function public.enforce_invite_on_signup()
 returns trigger
 language plpgsql
 security definer
-set search_path = public, extensions
+set search_path = pg_catalog, public, extensions
 as $$
 declare
   v_code text;
@@ -40,7 +40,7 @@ begin
   select id
     into v_invite_id
     from public.signup_invites
-   where code_hash = encode(extensions.digest(convert_to(v_code, 'UTF8'), 'sha256'), 'hex')
+   where code_hash = encode(digest(convert_to(v_code, 'UTF8'), 'sha256'), 'hex')
      and revoked_at is null
      and (expires_at is null or expires_at > now())
      and use_count < max_uses
@@ -67,12 +67,12 @@ for each row execute function public.enforce_invite_on_signup();
 -- Gere um convite de uso único válido por 7 dias.
 -- Execute este bloco separadamente sempre que quiser criar um novo convite.
 with generated as (
-  select upper(encode(extensions.gen_random_bytes(16), 'hex')) as code
+  select upper(encode(gen_random_bytes(16), 'hex')) as code
 ),
 saved as (
   insert into public.signup_invites (code_hash, max_uses, expires_at)
   select
-    encode(extensions.digest(convert_to(code, 'UTF8'), 'sha256'), 'hex'),
+    encode(digest(convert_to(code, 'UTF8'), 'sha256'), 'hex'),
     1,
     now() + interval '7 days'
   from generated
