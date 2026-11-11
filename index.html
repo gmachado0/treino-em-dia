@@ -118,12 +118,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   <div class="sectionhead"><h2>Escolha o dia</h2></div><div class="week" id="trainingDays"></div>
   <div class="sectionhead"><div><h2 id="workoutTitle">Full Body A</h2><p class="sub" id="workoutSubtitle" style="font-size:12px">Segunda-feira · Musculação</p></div><span class="pill" id="workoutStatus">Pendente</span></div>
   <div class="card" style="margin-bottom:12px"><div class="timerbox"><div><span class="eyebrow">Descanso entre séries</span><div class="timer" id="timerDisplay">01:30</div></div><div class="actions"><button class="btn small" id="timerStart">Iniciar</button><button class="btn small" id="timerReset">Resetar</button></div></div></div>
-  <div class="actions" id="sessionControls" style="margin:12px 0"><button class="btn primary" id="startWorkout">Iniciar sessão</button></div>
+  <div class="actions" id="sessionControls" style="margin:12px 0;align-items:end"><div class="field" style="max-width:260px;min-width:180px"><label for="sessionWorkoutChoice">Treino desta sessão</label><select id="sessionWorkoutChoice"></select></div><button class="btn primary" id="startWorkout">Iniciar sessão</button></div>
   <div id="exerciseList" class="workout-list"></div>
   <div class="actions" style="margin-top:15px"><button class="btn primary" id="finishWorkout">Concluir sessão</button><button class="btn" id="unfinishWorkout">Reabrir sessão</button></div>
-  <div class="sectionhead"><h2>Histórico de sessões</h2><span class="pill" id="workoutHistoryCount">0 sessões</span></div>
-  <p class="sub" style="font-size:12px;margin-bottom:10px">Consulte treinos concluídos e registros anteriores, inclusive de fichas antigas.</p>
-  <div id="workoutHistory" class="workout-list"><div class="empty">Carregando histórico...</div></div>
+  <details id="workoutHistoryDropdown" style="margin-top:27px"><summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;background:var(--panel);border:1px solid var(--line);border-radius:14px"><strong>Histórico de sessões</strong><span style="display:flex;align-items:center;gap:9px"><span class="pill" id="workoutHistoryCount">0 sessões</span><span class="muted" aria-hidden="true">▾</span></span></summary>
+  <p class="sub" style="font-size:12px;margin:10px 2px">Consulte treinos concluídos e registros anteriores, inclusive de fichas antigas.</p>
+  <div id="workoutHistory" class="workout-list" style="margin-top:10px"><div class="empty">Carregando histórico...</div></div></details>
 </section>
 
 <section id="cardio" class="view">
@@ -204,7 +204,7 @@ function weekKey(){return monday().toISOString().slice(0,10)}
 function doneKey(day){return weekKey()+'_'+day}
 function isDone(day){return !!data.completed[doneKey(day)]}
 function activeWorkout(day=selectedDay){const dayRow=cloudDayRows.find(x=>x.day_number===day+1);return [...(data.workoutEntries||[])].reverse().find(x=>x.day===day&&x.date===iso()&&x.status==='in_progress'&&(!dayRow||x.planDayId===dayRow.id))||null}
-function startWorkoutEntry(day=selectedDay){const dayRow=cloudDayRows.find(x=>x.day_number===day+1);if(!dayRow){toast('Não foi possível localizar este treino.');return}const entry={id:newRecordId(),day,planDayId:dayRow.id,date:iso(),status:'in_progress',logs:{}};data.workoutEntries??=[];data.workoutEntries.push(entry);data.activeWorkoutId=entry.id;save();renderTraining();toast('Nova sessão iniciada')}
+function startWorkoutEntry(day=selectedDay){const activeToday=(data.workoutEntries||[]).find(x=>x.date===iso()&&x.status==='in_progress');if(activeToday){toast('Conclua a sessão em andamento antes de iniciar outra.');return}const dayRow=cloudDayRows.find(x=>x.day_number===day+1);if(!dayRow){toast('Não foi possível localizar este treino.');return}const entry={id:newRecordId(),day,planDayId:dayRow.id,date:iso(),status:'in_progress',logs:{}};data.workoutEntries??=[];data.workoutEntries.push(entry);data.activeWorkoutId=entry.id;save();renderTraining();toast('Nova sessão iniciada')}
 function weekDone(){return (data.program||[]).filter(p=>isDone(p.day)).length}
 function renderDashboard(){
  const latest=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date))[0]||{weight:data.profile.initialWeight};
@@ -223,10 +223,15 @@ function renderDashboard(){
  $('#todayLabel').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
 }
 function renderTraining(){
+ const activeToday=[...(data.workoutEntries||[])].reverse().find(x=>x.date===iso()&&x.status==='in_progress');
+ if(activeToday)selectedDay=activeToday.day;
  const p=(data.program||[])[selectedDay];
  if(!p){$('#trainingDays').innerHTML='';$('#exerciseList').innerHTML='<div class="empty">Nenhum treino cadastrado.</div>';return}
  $('#trainingDays').innerHTML=(data.program||[]).map(x=>`<button class="day ${selectedDay===x.day?'active':''} ${isDone(x.day)?'done':''}" data-day="${x.day}"><b>${x.short} ${isDone(x.day)?'✓':''}</b><strong>${x.name}</strong><em>${x.type}</em></button>`).join('');
- $('#trainingDays').querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selectedDay=+b.dataset.day;renderTraining()});
+ $('#trainingDays').querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{if(activeToday)return;selectedDay=+b.dataset.day;renderTraining()});
+ $('#sessionWorkoutChoice').innerHTML=(data.program||[]).map(x=>`<option value="${x.day}">${x.name}</option>`).join('');
+ $('#sessionWorkoutChoice').value=String(selectedDay);$('#sessionWorkoutChoice').disabled=!!activeToday;
+ $('#sessionWorkoutChoice').onchange=()=>{if(activeToday)return;selectedDay=Number($('#sessionWorkoutChoice').value);renderTraining()};
  $('#workoutTitle').textContent=p.name;
  $('#workoutSubtitle').textContent=['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira'][selectedDay]+' · '+p.type;
  const entry=activeWorkout(selectedDay);
