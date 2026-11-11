@@ -231,7 +231,7 @@ function renderTraining(){
  $('#workoutSubtitle').textContent=['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira'][selectedDay]+' · '+p.type;
  const entry=activeWorkout(selectedDay);
  $('#workoutStatus').textContent=entry?'Sessão em andamento':isDone(selectedDay)?'Concluído nesta semana':'Pendente';
- $('#startWorkout').textContent=entry?'Iniciar outra sessão':'Iniciar sessão';
+ $('#startWorkout').textContent=entry?'Sessão em andamento':'Iniciar nova sessão';$('#startWorkout').disabled=!!entry;
  if(!entry)$('#exerciseList').innerHTML='<div class="empty">Inicie uma sessão para registrar cargas, repetições e séries. Os registros anteriores permanecem no histórico.</div>';
  else if(!p.items.length)$('#exerciseList').innerHTML=`<div class="card"><h2>Sessão cardiovascular</h2><p class="sub" style="margin-top:8px">${p.cardio||''}</p><button class="btn" style="margin-top:13px" onclick="openTab('cardio')">Registrar cardio</button></div>`;
  else{
@@ -248,7 +248,7 @@ function renderTraining(){
 }
 function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();window.scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
-$('#startWorkout').onclick=()=>{const current=activeWorkout(selectedDay);if(current&&!confirm('Já existe uma sessão em andamento. Iniciar outra manterá a atual salva como em andamento. Continuar?'))return;startWorkoutEntry(selectedDay)};
+$('#startWorkout').onclick=()=>{const current=activeWorkout(selectedDay);if(current)return;startWorkoutEntry(selectedDay)};
 $('#finishWorkout').onclick=async()=>{const entry=activeWorkout(selectedDay);if(!entry||!confirm('Marcar esta sessão como concluída?'))return;entry.status='completed';data.completed[doneKey(selectedDay)]=new Date().toISOString();save();await syncCloudData();await loadCloudData();renderTraining();renderHistory();renderDashboard();toast('Sessão concluída e salva no histórico')};
 $('#unfinishWorkout').onclick=async()=>{const entry=[...(data.workoutEntries||[])].reverse().find(x=>x.day===selectedDay&&x.status==='completed');if(!entry)return;if(!confirm('Reabrir esta sessão para edição?'))return;entry.status='in_progress';delete data.completed[doneKey(selectedDay)];save();await syncCloudData();renderTraining();renderDashboard();toast('Sessão reaberta')};
 $('#timerStart').onclick=()=>{if(timerInt){clearInterval(timerInt);timerInt=null;$('#timerStart').textContent='Continuar';return}$('#timerStart').textContent='Pausar';timerInt=setInterval(()=>{timerSec--;$('#timerDisplay').textContent=String(Math.floor(timerSec/60)).padStart(2,'0')+':'+String(timerSec%60).padStart(2,'0');if(timerSec<=0){clearInterval(timerInt);timerInt=null;$('#timerStart').textContent='Iniciar';toast('Intervalo finalizado');timerSec=90}},1000)};
@@ -479,7 +479,7 @@ async function loadCloudData(){
     cloud.from('workout_plans').select('*').eq('user_id',currentUser.id).eq('active',true).order('generated_at',{ascending:false}).limit(1).maybeSingle(),
     cloud.from('body_measurements').select('*').eq('user_id',currentUser.id).order('measurement_date'),
     cloud.from('cardio_sessions').select('*').eq('user_id',currentUser.id).order('session_date'),
-    cloud.from('workout_sessions').select('*').eq('user_id',currentUser.id).order('session_date',{ascending:true}),
+    cloud.from('workout_sessions').select('*').eq('user_id',currentUser.id).order('session_date',{ascending:true}).order('created_at',{ascending:true}),
     cloud.from('exercise_sets').select('*').eq('user_id',currentUser.id),
     cloud.from('workout_days').select('*').eq('user_id',currentUser.id),
     cloud.from('workout_exercises').select('*').eq('user_id',currentUser.id).order('order_number')
@@ -532,7 +532,7 @@ async function loadCloudData(){
   const cloudEntryIds=new Set(data.workoutEntries.map(entry=>entry.id));
   localEntries.forEach(entry=>{if(entry&&entry.id&&!cloudEntryIds.has(entry.id))data.workoutEntries.push(entry)});
   data.workoutHistory=data.workoutEntries.map(entry=>({id:entry.id,date:entry.date,status:entry.status,title:entry.title,type:entry.type,items:entry.items}));
-  data.completed={};data.workoutEntries.forEach(entry=>{if(entry.status==='completed'){const wk=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);data.completed[wk+'_'+entry.day]=entry.date;}});
+  data.completed={};data.workoutEntries.forEach(entry=>{if(entry.status==='completed'&&cloudDayRows.some(day=>day.id===entry.planDayId)){const wk=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);data.completed[wk+'_'+entry.day]=entry.date;}});
   (setsRes.data||[]).forEach(s=>{
     const session=sessionById[s.session_id];if(!session)return;
     const day=cloudDayRows.find(d=>d.id===session.workout_day_id);if(!day)return;
@@ -542,7 +542,7 @@ async function loadCloudData(){
     const key=day.day_number-1+'_'+idx;data.logs[key]??=[];data.logs[key][s.set_number-1]={load:s.load_kg,reps:s.repetitions,done:s.completed};
   });
   const currentWeek=monday().toISOString().slice(0,10);
-  Object.entries(legacyLogs).forEach(([key,series])=>{const day=Number(key.split('_')[0]),dayRow=cloudDayRows.find(d=>d.day_number===day+1);if(!dayRow||!(series||[]).some(v=>v&&(v.load!==undefined&&v.load!==''||v.reps!==undefined&&v.reps!==''||v.done)))return;const date=new Date(currentWeek+'T12:00:00');date.setDate(date.getDate()+day);const dateKey=date.toISOString().slice(0,10);let entry=data.workoutEntries.find(e=>e.planDayId===dayRow.id&&e.date===dateKey&&e.status==='in_progress');if(!entry){entry={id:newRecordId(),planDayId:dayRow.id,day,date:dateKey,status:legacyCompleted[currentWeek+'_'+day]?'completed':'in_progress',logs:{}};data.workoutEntries.push(entry)}const p=data.program.find(x=>x.day===day);if(p)p.items.forEach((item,i)=>{const old=series[i];if(old&&old.length){entry.logs[i]??=[];old.forEach((v,j)=>{if(v)entry.logs[i][j]={id:newRecordId(),...v}})}})});
+  Object.entries(legacyLogs).forEach(([key,series])=>{const day=Number(key.split('_')[0]),dayRow=cloudDayRows.find(d=>d.day_number===day+1);if(!dayRow||!(series||[]).some(v=>v&&(v.load!==undefined&&v.load!==''||v.reps!==undefined&&v.reps!==''||v.done)))return;const date=new Date(currentWeek+'T12:00:00');date.setDate(date.getDate()+day);const dateKey=date.toISOString().slice(0,10);let entry=data.workoutEntries.find(e=>e.planDayId===dayRow.id&&e.date===dateKey);if(!entry){entry={id:newRecordId(),planDayId:dayRow.id,day,date:dateKey,status:legacyCompleted[currentWeek+'_'+day]?'completed':'in_progress',logs:{}};data.workoutEntries.push(entry)}const p=data.program.find(x=>x.day===day);if(p)p.items.forEach((item,i)=>{const old=series[i];if(old&&old.length){entry.logs[i]??=[];old.forEach((v,j)=>{if(v)entry.logs[i][j]={...(entry.logs[i][j]||{}),...v,id:entry.logs[i][j]?.id||newRecordId()}})}})});
   data.workoutHistory=data.workoutEntries.map(entry=>({id:entry.id,date:entry.date,status:entry.status,title:allDaysById.get(entry.planDayId)?.title||'Treino',type:allDaysById.get(entry.planDayId)?.training_type||'',items:(allItemsRes.data||[]).filter(x=>x.workout_day_id===entry.planDayId).map((item,index)=>({name:item.exercise_name,sets:item.sets||0,repetitions:item.repetitions||'',records:(entry.logs[index]||[]).map((v,j)=>({number:j+1,load:v.load,reps:v.reps,completed:v.done}))}))}));
   if(q){$('#qObjective').value=q.objective;$('#qExperience').value=q.experience_level;$('#qDays').value=String(q.days_per_week);$('#qDuration').value=String(q.session_duration_min);$('#qLocation').value=q.training_location;$('#qLimitations').value=q.limitations||'';$('#qAge').value=q.age||'';$('#qWeight').value=profile.initial_weight_kg||'';$('#qHeight').value=profile.height_cm||''}
 }
