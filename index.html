@@ -67,13 +67,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
       </div>
       <div class="field"><label>Onde você pretende treinar?</label><select id="qLocation"><option value="academia">Academia</option><option value="casa">Em casa</option><option value="ar_livre">Ao ar livre</option><option value="misto">Locais variados</option></select></div>
       <div class="field"><label>Quais equipamentos você tem disponíveis?</label><div class="checkgrid">
-        <label class="checkitem"><input type="checkbox" name="equipment" value="Máquina" checked> Máquinas</label>
-        <label class="checkitem"><input type="checkbox" name="equipment" value="Halteres" checked> Halteres</label>
-        <label class="checkitem"><input type="checkbox" name="equipment" value="Cabo e polia" checked> Cabos e polias</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Máquina"> Máquinas</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Halteres"> Halteres</label>
+        <label class="checkitem"><input type="checkbox" name="equipment" value="Cabo e polia"> Cabos e polias</label>
         <label class="checkitem"><input type="checkbox" name="equipment" value="Peso corporal" checked> Peso corporal</label>
         <label class="checkitem"><input type="checkbox" name="equipment" value="Esteira"> Esteira</label>
         <label class="checkitem"><input type="checkbox" name="equipment" value="Bicicleta ergométrica"> Bicicleta</label>
       </div></div>
+      <div class="formrow"><div class="field"><label>Peso atual (kg)</label><input type="number" id="qWeight" min="30" max="350" step=".1" required placeholder="Ex.: 85"></div><div class="field"><label>Altura (cm)</label><input type="number" id="qHeight" min="100" max="230" required placeholder="Ex.: 170"></div></div>
       <div class="field"><label>Alguma limitação, lesão ou movimento que você precisa evitar? (opcional)</label><input id="qLimitations" maxlength="500" placeholder="Descreva ou deixe em branco"></div>
       <div class="field"><label>Idade (opcional)</label><input type="number" id="qAge" min="13" max="100" placeholder="Sua idade"></div>
       <button class="btn primary" id="generatePlanBtn">Salvar respostas e gerar meu treino</button>
@@ -185,7 +186,7 @@ function monday(d=new Date()){let x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.
 function weekKey(){return monday().toISOString().slice(0,10)}
 function doneKey(day){return weekKey()+'_'+day}
 function isDone(day){return !!data.completed[doneKey(day)]}
-function weekDone(){return defaultProgram.filter(p=>isDone(p.day)).length}
+function weekDone(){return (data.program||[]).filter(p=>isDone(p.day)).length}
 function renderDashboard(){
  const latest=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date))[0]||{weight:data.profile.initialWeight};
  $('#dashWeight').innerHTML=Number(latest.weight).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' <small style="font-size:13px">kg</small>';
@@ -195,15 +196,15 @@ function renderDashboard(){
  $('#dashStreak').textContent=Object.keys(data.completed).length;
  let pct=Math.min(100,Math.round(weekDone()/data.profile.weeklyGoal*100));$('#progressLabel').textContent=pct+'%';$('#weekProgress').style.width=pct+'%';
  const start=monday();$('#weekRange').textContent=start.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+new Date(start.getTime()+4*86400000).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
- $('#weekGrid').innerHTML=defaultProgram.map(p=>`<button class="day ${selectedDay===p.day?'active':''} ${isDone(p.day)?'done':''}" data-day="${p.day}"><b>${p.short} ${isDone(p.day)?'✓':''}</b><strong>${p.name.replace('Full Body ','FB ')}</strong><em>${p.type}</em></button>`).join('');
+ $('#weekGrid').innerHTML=(data.program||[]).map(p=>`<button class="day ${selectedDay===p.day?'active':''} ${isDone(p.day)?'done':''}" data-day="${p.day}"><b>${p.short} ${isDone(p.day)?'✓':''}</b><strong>${p.name.replace('Full Body ','FB ')}</strong><em>${p.type}</em></button>`).join('');
  $('#weekGrid').querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selectedDay=+b.dataset.day;openTab('training');renderTraining()});
- let next=defaultProgram.find(p=>!isDone(p.day))||defaultProgram[0];
+ let next=(data.program||[]).find(p=>!isDone(p.day))||(data.program||[])[0];
  $('#nextWorkout').innerHTML=`<div class="timerbox"><div><span class="eyebrow">${next.short} · ${next.type}</span><h2 style="margin-top:4px">${next.name}</h2><p class="sub" style="font-size:12px;margin-top:4px">${next.items.length?next.items.length+' exercícios':'Sessão cardiovascular'}</p></div><button class="btn primary" id="goNext">Abrir treino →</button></div>`;
  $('#goNext').onclick=()=>{selectedDay=next.day;openTab('training');renderTraining()};
  $('#todayLabel').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
 }
 function renderTraining(){
- const p=defaultProgram[selectedDay];$('#trainingDays').innerHTML=defaultProgram.map(x=>`<button class="day ${selectedDay===x.day?'active':''} ${isDone(x.day)?'done':''}" data-day="${x.day}"><b>${x.short} ${isDone(x.day)?'✓':''}</b><strong>${x.name}</strong><em>${x.type}</em></button>`).join('');
+ const p=(data.program||[])[selectedDay];if(!p){$('#trainingDays').innerHTML='';$('#exerciseList').innerHTML='<div class="empty">Nenhum treino cadastrado.</div>';return}$('#trainingDays').innerHTML=(data.program||[]).map(x=>`<button class="day ${selectedDay===x.day?'active':''} ${isDone(x.day)?'done':''}" data-day="${x.day}"><b>${x.short} ${isDone(x.day)?'✓':''}</b><strong>${x.name}</strong><em>${x.type}</em></button>`).join('');
  $('#trainingDays').querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selectedDay=+b.dataset.day;renderTraining()});
  $('#workoutTitle').textContent=p.name;$('#workoutSubtitle').textContent=['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira'][selectedDay]+' · '+p.type;$('#workoutStatus').textContent=isDone(selectedDay)?'Concluído':'Pendente';
  const list=$('#exerciseList');
@@ -332,17 +333,18 @@ async function createCloudPlan(q){
   if(rows.length){const {error}=await cloud.from('workout_exercises').insert(rows);if(error)throw error}
   data.program=program;return program;
 }
-async function saveQuestionnaire(q){
+async function saveQuestionnaire(q,weight,height){
   const {error:qErr}=await cloud.from('questionnaires').upsert({user_id:currentUser.id,...q,updated_at:new Date().toISOString()},{onConflict:'user_id'});
   if(qErr)throw qErr;
-  const {error:pErr}=await cloud.from('profiles').upsert({id:currentUser.id,display_name:currentUser.email?.split('@')[0]||'Usuário',weekly_goal:q.days_per_week,updated_at:new Date().toISOString()},{onConflict:'id'});
+  const {error:pErr}=await cloud.from('profiles').upsert({id:currentUser.id,display_name:currentUser.email?.split('@')[0]||'Usuário',height_cm:height,initial_weight_kg:weight,weekly_goal:q.days_per_week,updated_at:new Date().toISOString()},{onConflict:'id'});
   if(pErr)throw pErr;
 }
 $('#questionnaireForm').onsubmit=async e=>{
   e.preventDefault();$('#generatePlanBtn').disabled=true;$('#onboardingMessage').textContent='Salvando respostas e montando sua ficha...';
   try{
     const q=readQuestionnaire();if(!q.available_equipment.length)throw new Error('Selecione pelo menos um equipamento.');
-    await saveQuestionnaire(q);await createCloudPlan(q);
+    const weight=+$('#qWeight').value,height=+$('#qHeight').value;
+    await saveQuestionnaire(q,weight,height);data.profile.initialWeight=weight;data.profile.height=height;data.profile.weeklyGoal=q.days_per_week;data.weights=[{date:iso(),weight:weight,waist:null,hip:null}];await createCloudPlan(q);
     data.profile.weeklyGoal=q.days_per_week;window.cloudReady=true;await syncCloudData();
     showOnboarding(false);setAppVisible(true);renderDashboard();renderTraining();toast('Seu treino personalizado foi criado.');
   }catch(err){$('#onboardingMessage').textContent=err.message||'Não foi possível gerar o treino.'}
@@ -391,7 +393,7 @@ async function loadCloudData(){
     const key=day.day_number-1+'_'+idx;data.logs[key]??=[];data.logs[key][s.set_number-1]={load:s.load_kg,reps:s.repetitions,done:s.completed};
   });
   if(!data.weights.length&&profile.initial_weight_kg)data.weights=[{date:iso(),weight:Number(profile.initial_weight_kg),waist:null,hip:null}];
-  if(q){$('#qObjective').value=q.objective;$('#qExperience').value=q.experience_level;$('#qDays').value=String(q.days_per_week);$('#qDuration').value=String(q.session_duration_min);$('#qLocation').value=q.training_location;$('#qLimitations').value=q.limitations||'';$('#qAge').value=q.age||''}
+  if(q){$('#qObjective').value=q.objective;$('#qExperience').value=q.experience_level;$('#qDays').value=String(q.days_per_week);$('#qDuration').value=String(q.session_duration_min);$('#qLocation').value=q.training_location;$('#qLimitations').value=q.limitations||'';$('#qAge').value=q.age||'';$('#qWeight').value=profile.initial_weight_kg||'';$('#qHeight').value=profile.height_cm||''}
 }
 async function syncCloudData(){
   if(!currentUser)return;
