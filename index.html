@@ -159,7 +159,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   <div class="card" style="margin-top:18px">
     <h2>Perfil</h2><form id="profileForm" style="margin-top:13px">
       <div class="formrow"><div class="field"><label>Nome (opcional)</label><input id="profileName" placeholder="Como quer ser chamado?"></div><div class="field"><label>Peso inicial (kg)</label><input id="initialWeight" type="number" min="30" max="350" step=".1" required></div></div>
-      <div class="formrow" style="margin-top:12px"><div class="field"><label>Altura (cm)</label><input id="height" type="number" min="100" max="230" required></div><div class="field"><label>Meta de treinos/semana</label><select id="weeklyGoal"><option>3</option><option>4</option><option selected>5</option><option>6</option></select></div></div>
+      <div class="formrow" style="margin-top:12px"><div class="field"><label>Altura (cm)</label><input id="height" type="number" min="100" max="230" required></div><div class="field"><label>Meta de treinos/semana</label><select id="weeklyGoal"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select></div></div>
       <button class="btn primary" style="margin-top:14px">Salvar perfil</button>
     </form>
   </div>
@@ -362,7 +362,10 @@ function fillSettings(){
 function updateCardioSettingsFields(){
  const separate=$('#settingsCardioPreference').value==='separado';
  $('#settingsCardioDaysField').style.display=separate?'block':'none';
- const q=data.questionnaire||{},max=Math.max(1,7-Number(q.days_per_week||3));
+ const q=data.questionnaire||{},max=Math.max(0,6-Number(q.days_per_week||3));
+ const separateOption=$('#settingsCardioPreference').querySelector('option[value="separado"]');
+ separateOption.disabled=max===0;
+ if(max===0&&separate)$('#settingsCardioPreference').value='junto';
  const select=$('#settingsCardioDays');
  Array.from(select.options).forEach(option=>{option.disabled=Number(option.value)>max});
  if(Number(select.value)>max)select.value=String(max);
@@ -527,7 +530,10 @@ function hasSafetyLimitations(q){return !!String(q?.limitations||'').trim();}
 function updateCardioQuestionFields(){
  const separate=$('#qCardioPreference').value==='separado';
  $('#cardioDaysField').style.display=separate?'block':'none';
- const max=Math.max(1,7-Number($('#qDays').value||3));
+ const strengthDays=Number($('#qDays').value||3),max=Math.max(0,6-strengthDays);
+ const separateOption=$('#qCardioPreference').querySelector('option[value="separado"]');
+ separateOption.disabled=max===0;
+ if(max===0&&separate)$('#qCardioPreference').value='junto';
  const select=$('#qCardioDays');
  Array.from(select.options).forEach(option=>{option.disabled=Number(option.value)>max});
  if(Number(select.value)>max)select.value=String(max);
@@ -560,7 +566,7 @@ function makePlan(exercises,q){
   }
   const cardioText='20–30 min de caminhada, esteira ou bicicleta em ritmo confortável.';
   if(q.cardio_preference==='junto')selected.forEach(day=>day.cardio=cardioText);
-  if(q.cardio_preference==='separado'){const count=Math.min(Number(q.cardio_days_per_week)||1,7-selected.length);for(let i=0;i<count;i++){const day=selected.length;selected.push({day,short:dayShort[day],name:'Cardio '+String.fromCharCode(65+i),type:'Aeróbico',items:[],cardio:cardioText,exerciseIds:[]})}}
+  if(q.cardio_preference==='separado'){const count=Math.min(Number(q.cardio_days_per_week)||1,6-selected.length);for(let i=0;i<count;i++){const day=selected.length;selected.push({day,short:dayShort[day],name:'Cardio '+String.fromCharCode(65+i),type:'Aeróbico',items:[],cardio:cardioText,exerciseIds:[]})}}
   return selected;
 }
 async function createCloudPlan(q){
