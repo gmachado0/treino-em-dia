@@ -263,7 +263,7 @@ $('#authForm').onsubmit=async e=>{
   $('#authSubmit').disabled=true;authMessage('Aguarde...');
   try{
     if(authMode==='signup'){
-      const {data:res,error}=await cloud.auth.signUp({email,password});
+      const {data:res,error}=await cloud.auth.signUp({email,password,options:{emailRedirectTo:"https://gmachado0.github.io/treino-em-dia/"}});
       if(error)throw error;
       if(!res.session){authMessage('Conta criada. Confirme seu e-mail pelo link enviado para entrar.');}
       else authMessage('Conta criada. Preparando seu perfil...');
