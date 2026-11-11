@@ -153,7 +153,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   </div>
   <div class="card" style="margin-top:12px">
     <h2>Backup e restauração</h2><p class="sub" style="font-size:12px;margin:5px 0 14px">Exporte seus registros para guardar ou transfira-os para outro dispositivo.</p>
-    <div class="actions"><button class="btn" id="exportData">Exportar backup</button><label class="btn" for="importFile">Importar backup</label><input class="hidden" type="file" id="importFile" accept="application/json"></div>
+    <div class="actions"><button class="btn" id="exportData">Exportar backup da conta</button><button class="btn" id="exportLegacyBackup" style="display:none">Baixar backup antigo do dispositivo</button><label class="btn" for="importFile">Importar backup</label><input class="hidden" type="file" id="importFile" accept="application/json"></div>
   </div>
   <div class="card" style="margin-top:12px"><h2>Sobre os dados</h2><p class="sub" style="font-size:13px;margin-top:7px">Seus dados são vinculados à sua conta e sincronizados pelo Supabase. Use o backup JSON como cópia adicional. Não compartilhe sua senha.</p></div>
   <div class="card" style="margin-top:12px"><h2>Reiniciar aplicativo</h2><p class="sub" style="font-size:12px;margin:5px 0 12px">Apaga todos os registros deste dispositivo.</p><button class="btn" id="resetData" style="border-color:#793f42;color:#ff9999">Apagar todos os dados</button></div>
@@ -232,9 +232,13 @@ function fillSettings(){$('#profileName').value=data.profile.name||'';$('#initia
 $('#settingsBtn').onclick=()=>openTab('settings');
 $('#profileForm').onsubmit=e=>{e.preventDefault();data.profile={name:$('#profileName').value,initialWeight:+$('#initialWeight').value,height:+$('#height').value,weeklyGoal:+$('#weeklyGoal').value};save();toast('Perfil atualizado')};
 $('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='treino-em-dia-backup-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exportado')};
+$('#exportLegacyBackup').style.display=localStorage.getItem('treinoEmDia_legacy_backup')?'inline-block':'none';
+$('#exportLegacyBackup').onclick=()=>{const raw=localStorage.getItem('treinoEmDia_legacy_backup');if(!raw)return;const a=document.createElement('a'),blob=new Blob([raw],{type:'application/json'});a.href=URL.createObjectURL(blob);a.download='treino-em-dia-backup-antigo-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href)};
 $('#importFile').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(!d.profile||!d.weights||!d.program)throw Error();if(confirm('Substituir os dados atuais pelo backup?')){data=d;save();renderProgress();renderCardio();fillSettings();toast('Backup restaurado')}}catch{alert('Arquivo de backup inválido.')}e.target.value=''};r.readAsText(f)};
 $('#resetData').onclick=()=>{if(confirm('Apagar os registros de peso, cardio e sessões desta conta? Esta ação não pode ser desfeita.')){data.weights=[];data.cardio=[];data.completed={};data.logs={};save();renderDashboard();renderProgress();renderCardio();toast('Registros apagados')}};
 
+const legacyLocalData = localStorage.getItem('treinoEmDia');
+if(legacyLocalData && !localStorage.getItem('treinoEmDia_legacy_backup'))localStorage.setItem('treinoEmDia_legacy_backup',legacyLocalData);
 const SUPABASE_URL = "https://ndmsxrbsyifremblocney.supabase.co";
 const SUPABASE_KEY = "sb_publishable_4YHXb4Nw7bwDfbhz7lg4vg_h9nIGuXz";
 const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
