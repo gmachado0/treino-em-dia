@@ -3,10 +3,11 @@
 Aplicativo web responsivo para acompanhar a rotina de treino.
 
 ## Como usar
-- Abra `index.html` no navegador para testar.
-- Para instalar como PWA e habilitar funcionamento offline, publique os arquivos em um host HTTPS (por exemplo, GitHub Pages).
-- Os dados ficam no armazenamento local do navegador/dispositivo.
-- Use Configurações → Exportar backup para salvar uma cópia dos dados.
+- Acesse https://gmachado0.github.io/treino-em-dia/.
+- Crie uma conta ou entre com seu e-mail e senha.
+- No primeiro acesso, responda ao questionário para gerar seu plano personalizado.
+- Os dados da conta são armazenados no Supabase e protegidos por Row Level Security (RLS).
+- Use Configurações → Exportar backup para salvar uma cópia JSON adicional.
 
 ## Funcionalidades
 - Dashboard semanal e marcação de sessões concluídas.
@@ -18,6 +19,6 @@ Aplicativo web responsivo para acompanhar a rotina de treino.
 - Interface dark responsiva.
 
 ## Limitações desta versão
-- Não há login nem sincronização entre dispositivos.
+- O plano inicial é gerado por regras a partir das respostas do questionário e da biblioteca de exercícios.
 - A conclusão de sessão é um registro manual; o app não substitui orientação profissional.
-- A rotina inicial é fixa e deve ser validada/ajustada pelo instrutor da academia.
+- A biblioteca de exercícios é mantida no banco de dados.
