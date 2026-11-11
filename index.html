@@ -45,7 +45,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <div class="brand"><div class="logo">T</div><div><strong>TREINO EM DIA</strong><small>Consistência acima da intensidade</small></div></div>
     <h1 id="authTitle">Entre na sua conta</h1>
     <p class="sub" id="authIntro">Acesse seus treinos e acompanhe sua evolução em qualquer dispositivo.</p>
-    <div class="auth-switch"><button class="btn primary" id="showLogin">Entrar</button><button class="btn" id="showSignup">Criar conta</button></div>
+    <div class="auth-switch"><button class="btn primary" id="showLogin">Entrar</button><button class="btn" id="showSignup">Tenho um convite</button></div>
+    <div id="inviteFields" style="display:none">
+      <div class="field"><label>Código de convite</label><input type="text" id="inviteCode" autocomplete="off" maxlength="80" placeholder="Cole seu código de convite"></div>
+      <label class="checkitem" style="margin-top:12px"><input type="checkbox" id="adultConfirm"> Confirmo que tenho 18 anos ou mais.</label>
+      <p class="sub" style="font-size:12px;margin-top:8px">O cadastro é restrito a pessoas com convite e maiores de 18 anos.</p>
+    </div>
     <form id="authForm">
       <div class="field"><label>E-mail</label><input type="email" id="authEmail" autocomplete="email" required placeholder="seu@email.com"></div>
       <div class="field"><label>Senha</label><input type="password" id="authPassword" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></div>
@@ -78,7 +83,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
       </div></div>
       <div class="formrow"><div class="field"><label>Peso atual (kg)</label><input type="number" id="qWeight" min="30" max="350" step=".1" required placeholder="Ex.: 85"></div><div class="field"><label>Altura (cm)</label><input type="number" id="qHeight" min="100" max="230" required placeholder="Ex.: 170"></div></div>
       <div class="field"><label>Você tem alguma limitação, lesão, dor recorrente, cirurgia recente ou orientação médica para evitar movimentos? (opcional)</label><input id="qLimitations" maxlength="500" placeholder="Descreva ou deixe em branco se não houver"><p class="sub" style="font-size:12px">Importante: o aplicativo não consegue avaliar essas condições. Se preencher este campo, a geração automática será bloqueada até que você tenha orientação profissional adequada.</p></div>
-      <div class="field"><label>Idade (opcional)</label><input type="number" id="qAge" min="13" max="100" placeholder="Sua idade"></div>
+      <div class="field"><label>Idade (opcional)</label><input type="number" id="qAge" min="18" max="100" placeholder="Sua idade"></div>
       <button class="btn primary" id="generatePlanBtn">Salvar respostas e gerar meu treino</button>
       <div id="onboardingMessage" class="muted" style="font-size:13px;margin-top:12px"></div>
     </form>
@@ -291,6 +296,9 @@ function showAuth(mode){
   $('#authSubmit').textContent=mode==='signup'?'Criar conta':'Entrar';
   $('#authPassword').autocomplete=mode==='signup'?'new-password':'current-password';
   $('#showLogin').classList.toggle('primary',mode==='login');$('#showSignup').classList.toggle('primary',mode==='signup');
+  $('#inviteFields').style.display=mode==='signup'?'block':'none';
+  $('#inviteCode').required=mode==='signup';
+  $('#adultConfirm').required=mode==='signup';
   authMessage('');
 }
 $('#showLogin').onclick=()=>showAuth('login');
@@ -300,14 +308,21 @@ $('#authForm').onsubmit=async e=>{
   $('#authSubmit').disabled=true;authMessage('Aguarde...');
   try{
     if(authMode==='signup'){
-      const {data:res,error}=await cloud.auth.signUp({email,password,options:{emailRedirectTo:"https://gmachado0.github.io/treino-em-dia/"}});
+      const inviteCode=$('#inviteCode').value.trim().toUpperCase();
+      if(!inviteCode)throw new Error('Informe um código de convite.');
+      if(!$('#adultConfirm').checked)throw new Error('Confirme que você tem 18 anos ou mais.');
+      const {data:res,error}=await cloud.auth.signUp({email,password,options:{emailRedirectTo:"https://gmachado0.github.io/treino-em-dia/",data:{invite_code:inviteCode,is_adult:true}}});
       if(error)throw error;
       if(!res.session){authMessage('Conta criada. Confirme seu e-mail pelo link enviado para entrar.');}
       else authMessage('Conta criada. Preparando seu perfil...');
     }else{
       const {error}=await cloud.auth.signInWithPassword({email,password});if(error)throw error;
     }
-  }catch(err){authMessage(err.message||'Não foi possível autenticar.')}
+  }catch(err){
+    const message=err.message||'Não foi possível autenticar.';
+    if(authMode==='signup'&&/INVITE_REQUIRED|INVITE_INVALID|AGE_RESTRICTED|invite/i.test(message))authMessage('Convite inválido, expirado ou já utilizado. Confira o código e tente novamente.');
+    else authMessage(message);
+  }
   finally{$('#authSubmit').disabled=false}
 };
 $('#resendConfirmation').onclick=async()=>{
