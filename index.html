@@ -481,6 +481,7 @@ async function syncCloudData(){
   if(!currentUser)return;
   syncQueue=syncQueue.then(async()=>{
     const uid=currentUser.id;
+    data.sessionIds??={};data.setIds??={};
     const {error:profileErr}=await cloud.from('profiles').upsert({id:uid,display_name:data.profile.name||currentUser.email?.split('@')[0]||'Usuário',height_cm:data.profile.height||null,initial_weight_kg:data.profile.initialWeight||null,weekly_goal:data.profile.weeklyGoal,updated_at:new Date().toISOString()},{onConflict:'id'});
     if(profileErr)throw profileErr;
 
