@@ -72,7 +72,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
         <div class="field"><label>Quantos dias por semana?</label><select id="qDays"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
         <div class="field"><label>Duração por sessão</label><select id="qDuration"><option value="30">30 minutos</option><option value="45" selected>45 minutos</option><option value="60">60 minutos</option><option value="90">90 minutos</option></select></div>
       </div>
-      <div class="field"><label>Como prefere organizar o cardio?</label><select id="qCardioPreference"><option value="nao_incluir">Não incluir cardio na ficha</option><option value="junto" selected>Cardio junto com musculação</option><option value="separado">Cardio em dias separados</option></select><p class="sub" style="font-size:12px">Você também poderá registrar atividades avulsas na aba Cardio.</p></div>
+      <div class="card" style="margin:14px 0;padding:14px;border-color:var(--accent)"><div class="sectionhead" style="margin:0 0 8px"><h2>Cardio na sua ficha</h2><span class="pill">Preferência</span></div><div class="field"><label>Como prefere organizar o cardio?</label><select id="qCardioPreference"><option value="nao_incluir">Não incluir cardio na ficha</option><option value="junto" selected>Cardio junto com musculação</option><option value="separado">Cardio em dias separados</option></select><p class="sub" style="font-size:12px">Você também poderá registrar atividades avulsas na aba Cardio.</p></div></div>
       <div class="field" id="cardioDaysField" style="display:none"><label>Quantos dias de cardio separado por semana?</label><select id="qCardioDays"><option value="1">1 dia</option><option value="2" selected>2 dias</option><option value="3">3 dias</option></select><p class="sub" style="font-size:12px">Os dias de cardio serão adicionados aos dias de musculação.</p></div>
       <div class="field"><label>Onde você pretende treinar?</label><select id="qLocation"><option value="academia">Academia</option><option value="casa">Em casa</option><option value="ar_livre">Ao ar livre</option><option value="misto">Locais variados</option></select></div>
       <div class="field"><label>Quais equipamentos você tem disponíveis?</label><div class="checkgrid">
@@ -156,13 +156,6 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
 
 <section id="settings" class="view">
   <p class="eyebrow">Preferências e dados</p><h1>Configurações</h1><p class="sub">Ajuste seus dados e faça backup do aplicativo.</p>
-  <div class="card" style="margin-top:18px">
-    <h2>Perfil</h2><form id="profileForm" style="margin-top:13px">
-      <div class="formrow"><div class="field"><label>Nome (opcional)</label><input id="profileName" placeholder="Como quer ser chamado?"></div><div class="field"><label>Peso inicial (kg)</label><input id="initialWeight" type="number" min="30" max="350" step=".1" required></div></div>
-      <div class="formrow" style="margin-top:12px"><div class="field"><label>Altura (cm)</label><input id="height" type="number" min="100" max="230" required></div><div class="field"><label>Meta de treinos/semana</label><select id="weeklyGoal"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select></div></div>
-      <button class="btn primary" style="margin-top:14px">Salvar perfil</button>
-    </form>
-  </div>
   <div class="card" style="margin-top:12px">
     <h2>Planejamento de cardio</h2>
     <p class="sub" style="font-size:12px;margin:5px 0 12px">Altere como o cardio aparece na sua ficha. Atualizar cria uma nova ficha e mantém os treinos anteriores no histórico.</p>
@@ -170,6 +163,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <div class="field" id="settingsCardioDaysField" style="display:none;margin-top:10px"><label>Dias de cardio separado por semana</label><select id="settingsCardioDays"><option value="1">1 dia</option><option value="2">2 dias</option><option value="3">3 dias</option></select></div>
     <button class="btn primary" id="updateCardioPlan" style="margin-top:14px">Salvar e atualizar ficha</button>
     <p id="cardioPlanMessage" class="muted" style="font-size:12px;margin-top:9px"></p>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h2>Perfil</h2><form id="profileForm" style="margin-top:13px">
+      <div class="formrow"><div class="field"><label>Nome (opcional)</label><input id="profileName" placeholder="Como quer ser chamado?"></div><div class="field"><label>Peso inicial (kg)</label><input id="initialWeight" type="number" min="30" max="350" step=".1" required></div></div>
+      <div class="formrow" style="margin-top:12px"><div class="field"><label>Altura (cm)</label><input id="height" type="number" min="100" max="230" required></div><div class="field"><label>Meta de treinos/semana</label><select id="weeklyGoal"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option></select></div></div>
+      <button class="btn primary" style="margin-top:14px">Salvar perfil</button>
+    </form>
   </div>
   <div class="card" style="margin-top:12px">
     <h2>Backup e restauração</h2><p class="sub" style="font-size:12px;margin:5px 0 14px">Exporte seus registros para guardar ou transfira-os para outro dispositivo.</p>
@@ -431,6 +431,7 @@ $('#resetData').onclick=async()=>{
     localStorage.setItem('treinoEmDia',JSON.stringify(data));
     cloudDayRows=[];selectedDay=0;
     $('#questionnaireForm').reset();
+    updateCardioQuestionFields();
     $('#qWeight').value='';$('#qHeight').value='';$('#qLimitations').value='';$('#qAge').value='';
     setAppVisible(false);authGate.style.display='none';showOnboarding(true);
     $('#onboardingMessage').textContent='Dados apagados. Sua conta continua ativa. Preencha o questionário para criar uma nova ficha.';
