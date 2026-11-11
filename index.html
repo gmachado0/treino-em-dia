@@ -14,14 +14,14 @@
 .app{max-width:1080px;margin:auto;padding:22px 20px 100px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px}.brand{display:flex;align-items:center;gap:11px}.logo{width:42px;height:42px;border-radius:13px;background:var(--accent);color:#111;display:grid;place-items:center;font-weight:900;font-size:22px}.brand strong{display:block;font-size:17px;letter-spacing:-.4px}.brand small{color:var(--muted)}.iconbtn,.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:12px;padding:10px 13px}.btn.primary{background:var(--accent);color:#111;border-color:var(--accent);font-weight:750}.btn.small{padding:7px 10px;font-size:13px}.btn:disabled{opacity:.45;cursor:not-allowed}
 h1{font-size:clamp(27px,5vw,38px);line-height:1.1;letter-spacing:-1.2px;margin:0 0 7px}h2{font-size:19px;letter-spacing:-.4px;margin:0}.sub{color:var(--muted);margin:0}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:27px 0 13px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat,.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px}.stat label,.eyebrow{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700}.stat strong{display:block;font-size:27px;letter-spacing:-1px;margin-top:5px}.stat span{color:var(--muted);font-size:12px}
 .progress{height:8px;background:#30343d;border-radius:99px;overflow:hidden;margin-top:11px}.progress>i{height:100%;display:block;background:var(--accent);border-radius:99px;transition:width .2s}
-.week{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}.day{border:1px solid var(--line);background:var(--panel);padding:13px 10px;border-radius:15px;text-align:left;color:var(--text);min-height:93px}.day.active{border-color:var(--accent);background:#20271b}.day.done{border-color:#577b35}.day b{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}.day strong{display:block;font-size:13px}.day em{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:4px}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.day{border:1px solid var(--line);background:var(--panel);padding:11px 8px;border-radius:15px;text-align:left;color:var(--text);min-height:88px;min-width:0}.day.active{border-color:var(--accent);background:#20271b}.day.done{border-color:#577b35}.day b{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}.day strong{display:block;font-size:12px;overflow-wrap:anywhere}.day em{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:4px}
 .tabs{position:fixed;bottom:0;left:0;right:0;z-index:5;background:rgba(20,22,26,.96);backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;justify-content:center;padding:9px max(12px,env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));gap:5px}.tabs button{background:none;border:0;color:var(--muted);padding:8px 14px;border-radius:12px;font-size:12px;min-width:70px}.tabs button.active{background:#2b3322;color:var(--accent)}.tabs span{display:block;font-size:18px;margin-bottom:2px}
 .view{display:none}.view.active{display:block}.workout-list{display:grid;gap:10px}.exercise{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);padding:15px;border-radius:16px}.exercise h3{font-size:15px;margin:0 0 3px}.exercise p{font-size:12px;color:var(--muted);margin:0}.exercise .meta{font-size:12px;color:var(--accent);margin-top:7px}.exercise button{white-space:nowrap}.exercise.done{opacity:.68;border-color:#526d36}.pill{font-size:11px;padding:5px 8px;border-radius:99px;background:var(--panel2);color:var(--muted);display:inline-block}
 .formrow{display:flex;gap:9px;flex-wrap:wrap}.field{display:grid;gap:6px;flex:1;min-width:120px}.field label{font-size:12px;color:var(--muted)}input,select{width:100%;border:1px solid var(--line);border-radius:11px;background:#111317;color:var(--text);padding:11px;min-width:0}input:focus,select:focus{outline:1px solid var(--accent);border-color:var(--accent)}
 .exercise-detail{margin-top:10px;padding:13px;background:#14161a;border-radius:13px;border:1px solid var(--line);display:none}.exercise-detail.open{display:block}.setrow{display:grid;grid-template-columns:45px 1fr 1fr 42px;gap:7px;align-items:center;margin-top:8px}.setrow input{padding:8px;text-align:center}.setrow button{height:38px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text)}.setrow button.checked{background:var(--accent);color:#111;border-color:var(--accent)}
 .timerbox{display:flex;align-items:center;justify-content:space-between;gap:12px}.timer{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px}.muted{color:var(--muted)}.empty{padding:28px;text-align:center;color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-weight:600}.chart{height:180px;width:100%;display:block}.notice{border:1px solid #4d6035;background:#20271b;color:#d8efbd;padding:12px 14px;border-radius:13px;font-size:13px;margin-top:13px}.danger{color:var(--danger)}.actions{display:flex;gap:8px;flex-wrap:wrap}.hidden{display:none!important}
-@media(max-width:650px){.app{padding:17px 14px 100px}.grid{gap:8px}.stat{padding:13px}.stat strong{font-size:23px}.week{gap:6px}.day{padding:10px 7px;min-height:88px}.day strong{font-size:11px}.day em{font-size:10px}.tabs button{padding:7px 9px;min-width:58px}.exercise{padding:13px}.setrow{grid-template-columns:35px 1fr 1fr 38px}.top{margin-bottom:21px}}
+@media(max-width:650px){.app{padding:17px 14px 100px}.grid{gap:8px}.stat{padding:13px}.stat strong{font-size:23px}.week{gap:5px;grid-template-columns:repeat(4,minmax(0,1fr))}.day{padding:10px 7px;min-height:82px}.day strong{font-size:11px}.day em{font-size:10px}.tabs button{padding:7px 9px;min-width:58px}.exercise{padding:13px}.setrow{grid-template-columns:35px 1fr 1fr 38px}.top{margin-bottom:21px}}
 
 .app,.tabs{display:none}
 #authGate{min-height:100vh;display:grid;place-items:center;padding:22px;background:var(--bg)}
@@ -72,6 +72,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
         <div class="field"><label>Quantos dias por semana?</label><select id="qDays"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
         <div class="field"><label>Duração por sessão</label><select id="qDuration"><option value="30">30 minutos</option><option value="45" selected>45 minutos</option><option value="60">60 minutos</option><option value="90">90 minutos</option></select></div>
       </div>
+      <div class="field"><label>Como prefere organizar o cardio?</label><select id="qCardioPreference"><option value="nao_incluir">Não incluir cardio na ficha</option><option value="junto" selected>Cardio junto com musculação</option><option value="separado">Cardio em dias separados</option></select><p class="sub" style="font-size:12px">Você também poderá registrar atividades avulsas na aba Cardio.</p></div>
+      <div class="field" id="cardioDaysField" style="display:none"><label>Quantos dias de cardio separado por semana?</label><select id="qCardioDays"><option value="1">1 dia</option><option value="2" selected>2 dias</option><option value="3">3 dias</option></select><p class="sub" style="font-size:12px">Os dias de cardio serão adicionados aos dias de musculação.</p></div>
       <div class="field"><label>Onde você pretende treinar?</label><select id="qLocation"><option value="academia">Academia</option><option value="casa">Em casa</option><option value="ar_livre">Ao ar livre</option><option value="misto">Locais variados</option></select></div>
       <div class="field"><label>Quais equipamentos você tem disponíveis?</label><div class="checkgrid">
         <label class="checkitem"><input type="checkbox" name="equipment" value="Máquina"> Máquinas</label>
@@ -214,7 +216,7 @@ function renderDashboard(){
  $('#dashCount').textContent=weekDone()+'/'+data.profile.weeklyGoal;
  $('#dashStreak').textContent=Object.keys(data.completed).length;
  let pct=Math.min(100,Math.round(weekDone()/data.profile.weeklyGoal*100));$('#progressLabel').textContent=pct+'%';$('#weekProgress').style.width=pct+'%';
- const start=monday();$('#weekRange').textContent=start.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+new Date(start.getTime()+4*86400000).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+ const start=monday();$('#weekRange').textContent=start.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' – '+new Date(start.getTime()+6*86400000).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
  $('#weekGrid').innerHTML=(data.program||[]).map(p=>`<button class="day ${selectedDay===p.day?'active':''} ${isDone(p.day)?'done':''}" data-day="${p.day}"><b>${p.short} ${isDone(p.day)?'✓':''}</b><strong>${p.name.replace('Full Body ','FB ')}</strong><em>${p.type}</em></button>`).join('');
  $('#weekGrid').querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selectedDay=+b.dataset.day;selectedWorkoutDay=selectedDay;openTab('training');renderTraining()});
  let next=(data.program||[]).find(p=>!isDone(p.day))||(data.program||[])[0];
@@ -234,7 +236,7 @@ function renderTraining(){
  $('#sessionWorkoutChoice').value=String(activeToday?activeToday.day:selectedWorkoutDay);$('#sessionWorkoutChoice').disabled=!!activeToday;
  $('#sessionWorkoutChoice').onchange=()=>{if(activeToday)return;selectedWorkoutDay=Number($('#sessionWorkoutChoice').value);renderTraining()};
  $('#workoutTitle').textContent=p.name;
- $('#workoutSubtitle').textContent=(['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira'][selectedDay]||'Dia programado')+' · '+p.name+' · '+p.type;
+ $('#workoutSubtitle').textContent=(['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'][selectedDay]||'Dia programado')+' · '+p.name+' · '+p.type;
  const entry=activeWorkout(selectedDay);
  if(window.sessionTimerInt)clearInterval(window.sessionTimerInt);
  const updateSessionElapsed=()=>{const el=$('#sessionElapsed');if(!el)return;if(!entry){el.textContent='00:00:00';return}const seconds=Math.max(0,Math.floor((Date.now()-new Date(entry.startedAt||Date.now()).getTime())/1000));const h=String(Math.floor(seconds/3600)).padStart(2,'0'),m=String(Math.floor(seconds%3600/60)).padStart(2,'0'),sec=String(seconds%60).padStart(2,'0');el.textContent=h+':'+m+':'+sec};
@@ -243,7 +245,7 @@ function renderTraining(){
  $('#startWorkout').textContent=entry?'Sessão em andamento':'Iniciar nova sessão';$('#startWorkout').disabled=!!entry;
   if(!entry){
    if(p.items.length){
-    $('#exerciseList').innerHTML='<div class="sectionhead" style="margin:8px 0 2px"><h2>Exercícios deste treino</h2><span class="pill">Prévia</span></div><p class="sub" style="font-size:12px;margin:0 0 10px 2px">Confira os exercícios, séries e repetições antes de iniciar.</p>'+p.items.map((it,i)=>'<article class="exercise"><div><h3>'+String(i+1)+'. '+it[0]+'</h3><div class="meta">'+it[1]+' séries · '+it[2]+' repetições</div></div><span class="pill">Planejado</span></article>').join('');
+    $('#exerciseList').innerHTML='<div class="sectionhead" style="margin:8px 0 2px"><h2>Exercícios deste treino</h2><span class="pill">Prévia</span></div><p class="sub" style="font-size:12px;margin:0 0 10px 2px">Confira os exercícios, séries e repetições antes de iniciar.</p>'+p.items.map((it,i)=>'<article class="exercise"><div><h3>'+String(i+1)+'. '+it[0]+'</h3><div class="meta">'+it[1]+' séries · '+it[2]+' repetições</div></div><span class="pill">Planejado</span></article>').join('')+(p.cardio?'<div class="card"><div class="sectionhead" style="margin:0"><h2>Cardio planejado</h2><span class="pill">Complementar</span></div><p class="sub" style="margin-top:8px">'+p.cardio+'</p></div>':'');
    }else{
     $('#exerciseList').innerHTML='<div class="card"><div class="sectionhead"><h2>Sessão cardiovascular</h2><span class="pill">Prévia</span></div><p class="sub" style="margin-top:8px">'+(p.cardio||'Detalhes do cardio não informados.')+'</p><p class="sub" style="font-size:12px;margin-top:12px">Inicie a sessão para registrar a atividade.</p></div>';
    }
@@ -257,6 +259,7 @@ function renderTraining(){
   $('#exerciseList').querySelectorAll('[data-load],[data-reps]').forEach(inp=>inp.onchange=()=>{const [i,j]=(inp.dataset.load||inp.dataset.reps).split('_').map(Number);entry.logs??={};entry.logs[i]??=[];entry.logs[i][j]??={id:newRecordId()};entry.logs[i][j][inp.dataset.load?'load':'reps']=inp.value;save()});
   $('#exerciseList').querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{const [i,j]=b.dataset.set.split('_').map(Number);entry.logs??={};entry.logs[i]??=[];entry.logs[i][j]??={id:newRecordId()};entry.logs[i][j].done=!entry.logs[i][j].done;save();renderTraining()});
  }
+ if(entry&&p.items.length&&p.cardio){const cardioCard=document.createElement('div');cardioCard.className='card';cardioCard.innerHTML='<div class="sectionhead" style="margin:0"><h2>Cardio planejado</h2><span class="pill">Complementar</span></div><p class="sub" style="margin-top:8px"></p>';cardioCard.querySelector('p').textContent=p.cardio;$('#exerciseList').append(cardioCard)}
  $('#finishWorkout').disabled=!entry;
  $('#finishWorkout').style.display=entry?'inline-block':'none';
  renderHistory();
@@ -288,7 +291,7 @@ function saveHistorySet(sessionId,itemIndex,setIndex,field,value){
 }
 function renderHistory(){
  const root=$('#workoutHistory'),allHistory=data.workoutHistory||[];
- const dayNames=['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira'];
+ const dayNames=['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'];
  const dayName=dayNames[selectedDay]||'dia selecionado';
  const history=allHistory.filter(session=>(session.scheduledDay??session.day)===selectedDay);
  $('#workoutHistoryTitle').textContent='Histórico de '+dayName;
@@ -461,6 +464,8 @@ function readQuestionnaire(){
     objective:$('#qObjective').value,
     experience_level:$('#qExperience').value,
     days_per_week:+$('#qDays').value,
+    cardio_preference:$('#qCardioPreference').value,
+    cardio_days_per_week:+$('#qCardioDays').value,
     session_duration_min:+$('#qDuration').value,
     training_location:$('#qLocation').value,
     available_equipment:Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(x=>x.value),
@@ -469,6 +474,17 @@ function readQuestionnaire(){
   };
 }
 function hasSafetyLimitations(q){return !!String(q?.limitations||'').trim();}
+function updateCardioQuestionFields(){
+ const separate=$('#qCardioPreference').value==='separado';
+ $('#cardioDaysField').style.display=separate?'block':'none';
+ const max=Math.max(1,7-Number($('#qDays').value||3));
+ const select=$('#qCardioDays');
+ Array.from(select.options).forEach(option=>{option.disabled=Number(option.value)>max});
+ if(Number(select.value)>max)select.value=String(max);
+}
+$('#qCardioPreference').addEventListener('change',updateCardioQuestionFields);
+$('#qDays').addEventListener('change',updateCardioQuestionFields);
+updateCardioQuestionFields();
 function equipmentAllowed(ex,q){
   if(ex.equipment==='Nenhum'||ex.equipment==='Peso corporal')return true;
   if(q.training_location==='academia'||q.training_location==='misto')return q.available_equipment.includes(ex.equipment)||['Máquina','Cabo e polia','Halteres'].includes(ex.equipment);
@@ -480,6 +496,7 @@ function makePlan(exercises,q){
   const byGroup=g=>usable.filter(e=>e.muscle_group.toLowerCase().includes(g.toLowerCase()));
   const selected=[];
   const targetCount=q.session_duration_min<=30?4:q.session_duration_min<=45?5:7;
+  const dayShort=['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
   for(let d=0;d<q.days_per_week;d++){
     const picks=[],used=new Set();
     const order=d%2===0?['Pernas','Peito','Costas','Ombros','Abdômen','Posterior de coxa','Glúteos']:['Quadríceps','Costas','Peito','Glúteos','Bíceps','Tríceps','Panturrilhas'];
@@ -489,8 +506,11 @@ function makePlan(exercises,q){
       if(picks.length>=targetCount)break;
     }
     for(const ex of usable){if(picks.length>=targetCount)break;if(!used.has(ex.id)){picks.push(ex);used.add(ex.id)}}
-    selected.push({day:d,short:['SEG','TER','QUA','QUI','SEX','SÁB'][d],name:'Treino '+String.fromCharCode(65+d),type:'Musculação',items:picks.map(ex=>[ex.name,q.experience_level==='iniciante'?2:3,q.experience_level==='iniciante'?'10–12':'8–12',ex.muscle_group]),exerciseIds:picks.map(ex=>ex.id)});
+    selected.push({day:d,short:dayShort[d],name:'Treino '+String.fromCharCode(65+d),type:'Musculação',items:picks.map(ex=>[ex.name,q.experience_level==='iniciante'?2:3,q.experience_level==='iniciante'?'10–12':'8–12',ex.muscle_group]),exerciseIds:picks.map(ex=>ex.id)});
   }
+  const cardioText='20–30 min de caminhada, esteira ou bicicleta em ritmo confortável.';
+  if(q.cardio_preference==='junto')selected.forEach(day=>day.cardio=cardioText);
+  if(q.cardio_preference==='separado'){const count=Math.min(Number(q.cardio_days_per_week)||1,7-selected.length);for(let i=0;i<count;i++){const day=selected.length;selected.push({day,short:dayShort[day],name:'Cardio '+String.fromCharCode(65+i),type:'Aeróbico',items:[],cardio:cardioText,exerciseIds:[]})}}
   return selected;
 }
 async function createCloudPlan(q){
@@ -500,7 +520,7 @@ async function createCloudPlan(q){
   if(!program.length||!program.some(p=>p.items.length))throw new Error('Não encontramos exercícios compatíveis com os equipamentos selecionados. Revise suas opções.');
   const {data:plan,error:planErr}=await cloud.from('workout_plans').insert({user_id:currentUser.id,title:'Plano personalizado',objective:q.objective,active:true}).select().single();
   if(planErr)throw planErr;
-  const dayRows=program.map(p=>({user_id:currentUser.id,plan_id:plan.id,day_number:p.day+1,title:p.name,training_type:p.type,cardio_description:null}));
+  const dayRows=program.map(p=>({user_id:currentUser.id,plan_id:plan.id,day_number:p.day+1,title:p.name,training_type:p.type,cardio_description:p.cardio||null}));
   const {data:days,error:dayErr}=await cloud.from('workout_days').insert(dayRows).select();
   if(dayErr)throw dayErr;
   cloudDayRows=days;
@@ -522,7 +542,7 @@ $('#questionnaireForm').onsubmit=async e=>{
     if(hasSafetyLimitations(q))throw new Error('A geração automática foi bloqueada porque você informou uma limitação física. Não apague essa informação para contornar o bloqueio. Procure um profissional de saúde ou educação física habilitado para avaliar quais movimentos são adequados antes de montar uma ficha.');
     const weight=+$('#qWeight').value,height=+$('#qHeight').value;
     await saveQuestionnaire(q,weight,height);data.profile.initialWeight=weight;data.profile.height=height;data.profile.weeklyGoal=q.days_per_week;data.weights=[{date:iso(),weight:weight,waist:null,hip:null}];await createCloudPlan(q);
-    data.profile.weeklyGoal=q.days_per_week;window.cloudReady=true;await syncCloudData();
+    data.profile.weeklyGoal=data.program.length;window.cloudReady=true;await syncCloudData();
     showOnboarding(false);setAppVisible(true);renderDashboard();renderTraining();toast('Seu treino personalizado foi criado.');
   }catch(err){$('#onboardingMessage').textContent=err.message||'Não foi possível gerar o treino.'}
   finally{$('#generatePlanBtn').disabled=false}
@@ -553,7 +573,7 @@ async function loadCloudData(){
     if(itemErr)throw itemErr;
     data.program=cloudDayRows.map(d=>{
       const its=(items||[]).filter(x=>x.workout_day_id===d.id);
-      return {day:d.day_number-1,short:['SEG','TER','QUA','QUI','SEX','SÁB'][d.day_number-1]||'DIA',name:d.title,type:d.training_type,cardio:d.cardio_description,items:its.map(x=>[x.exercise_name,x.sets,x.repetitions,'']),exerciseIds:its.map(x=>x.exercise_id)};
+      return {day:d.day_number-1,short:['SEG','TER','QUA','QUI','SEX','SÁB','DOM'][d.day_number-1]||'DIA',name:d.title,type:d.training_type,cardio:d.cardio_description,items:its.map(x=>[x.exercise_name,x.sets,x.repetitions,'']),exerciseIds:its.map(x=>x.exercise_id)};
     });
     if(!data.program.length)data.program=defaultProgram;
   }else data.program=[];
@@ -599,7 +619,7 @@ async function loadCloudData(){
   const currentWeek=monday().toISOString().slice(0,10);
   Object.entries(legacyLogs).forEach(([key,series])=>{const day=Number(key.split('_')[0]),dayRow=cloudDayRows.find(d=>d.day_number===day+1);if(!dayRow||!(series||[]).some(v=>v&&(v.load!==undefined&&v.load!==''||v.reps!==undefined&&v.reps!==''||v.done)))return;const date=new Date(currentWeek+'T12:00:00');date.setDate(date.getDate()+day);const dateKey=date.toISOString().slice(0,10);let entry=data.workoutEntries.find(e=>e.planDayId===dayRow.id&&e.date===dateKey);if(!entry){entry={id:newRecordId(),planDayId:dayRow.id,day,scheduledDay:day,date:dateKey,status:legacyCompleted[currentWeek+'_'+day]?'completed':'in_progress',logs:{}};data.workoutEntries.push(entry)}const p=data.program.find(x=>x.day===day);if(p)p.items.forEach((item,i)=>{const old=series[i];if(old&&old.length){entry.logs[i]??=[];old.forEach((v,j)=>{if(v)entry.logs[i][j]={...(entry.logs[i][j]||{}),...v,id:entry.logs[i][j]?.id||newRecordId()}})}})});
   data.workoutHistory=data.workoutEntries.map(entry=>({id:entry.id,date:entry.date,status:entry.status,day:entry.day,scheduledDay:entry.scheduledDay??entry.day,title:allDaysById.get(entry.planDayId)?.title||'Treino',type:allDaysById.get(entry.planDayId)?.training_type||'',items:(allItemsRes.data||[]).filter(x=>x.workout_day_id===entry.planDayId).map((item,index)=>({name:item.exercise_name,sets:item.sets||0,repetitions:item.repetitions||'',records:(entry.logs[index]||[]).map((v,j)=>({number:j+1,load:v.load,reps:v.reps,completed:v.done}))}))}));
-  if(q){$('#qObjective').value=q.objective;$('#qExperience').value=q.experience_level;$('#qDays').value=String(q.days_per_week);$('#qDuration').value=String(q.session_duration_min);$('#qLocation').value=q.training_location;$('#qLimitations').value=q.limitations||'';$('#qAge').value=q.age||'';$('#qWeight').value=profile.initial_weight_kg||'';$('#qHeight').value=profile.height_cm||''}
+  if(q){$('#qObjective').value=q.objective;$('#qExperience').value=q.experience_level;$('#qDays').value=String(q.days_per_week);$('#qCardioPreference').value=q.cardio_preference||'junto';$('#qCardioDays').value=String(q.cardio_days_per_week||2);$('#qDuration').value=String(q.session_duration_min);$('#qLocation').value=q.training_location;$('#qLimitations').value=q.limitations||'';$('#qAge').value=q.age||'';$('#qWeight').value=profile.initial_weight_kg||'';$('#qHeight').value=profile.height_cm||''}
 }
 async function syncCloudData(){
  if(!currentUser)return;
