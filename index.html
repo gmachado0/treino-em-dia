@@ -237,7 +237,13 @@ function renderTraining(){
  const entry=activeWorkout(selectedDay);
  $('#workoutStatus').textContent=entry?'Sessão em andamento':isDone(selectedDay)?'Concluído nesta semana':'Pendente';
  $('#startWorkout').textContent=entry?'Sessão em andamento':'Iniciar nova sessão';$('#startWorkout').disabled=!!entry;
- if(!entry)$('#exerciseList').innerHTML='<div class="empty">Inicie uma sessão para registrar cargas, repetições e séries. Os registros anteriores permanecem no histórico.</div>';
+  if(!entry){
+   if(p.items.length){
+    $('#exerciseList').innerHTML='<div class="sectionhead" style="margin:8px 0 2px"><h2>Exercícios deste treino</h2><span class="pill">Prévia</span></div><p class="sub" style="font-size:12px;margin:0 0 10px 2px">Confira os exercícios, séries e repetições antes de iniciar.</p>'+p.items.map((it,i)=>'<article class="exercise"><div><h3>'+String(i+1)+'. '+it[0]+'</h3><div class="meta">'+it[1]+' séries · '+it[2]+' repetições</div></div><span class="pill">Planejado</span></article>').join('');
+   }else{
+    $('#exerciseList').innerHTML='<div class="card"><div class="sectionhead"><h2>Sessão cardiovascular</h2><span class="pill">Prévia</span></div><p class="sub" style="margin-top:8px">'+(p.cardio||'Detalhes do cardio não informados.')+'</p><p class="sub" style="font-size:12px;margin-top:12px">Inicie a sessão para registrar a atividade.</p></div>';
+   }
+  }
  else if(!p.items.length)$('#exerciseList').innerHTML=`<div class="card"><h2>Sessão cardiovascular</h2><p class="sub" style="margin-top:8px">${p.cardio||''}</p><button class="btn" style="margin-top:13px" onclick="openTab('cardio')">Registrar cardio</button></div>`;
  else{
   const logs=entry.logs||{};
