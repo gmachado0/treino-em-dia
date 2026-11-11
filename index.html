@@ -157,7 +157,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <div class="actions"><button class="btn" id="exportData">Exportar backup da conta</button><button class="btn" id="exportLegacyBackup" style="display:none">Baixar backup antigo do dispositivo</button><label class="btn" for="importFile">Importar backup</label><input class="hidden" type="file" id="importFile" accept="application/json"></div>
   </div>
   <div class="card" style="margin-top:12px"><h2>Sobre os dados</h2><p class="sub" style="font-size:13px;margin-top:7px">Seus dados são vinculados à sua conta e sincronizados pelo Supabase. Use o backup JSON como cópia adicional. Não compartilhe sua senha.</p></div>
-  <div class="card" style="margin-top:12px"><h2>Reiniciar aplicativo</h2><p class="sub" style="font-size:12px;margin:5px 0 12px">Apaga todos os registros deste dispositivo.</p><button class="btn" id="resetData" style="border-color:#793f42;color:#ff9999">Apagar todos os dados</button></div>
+  <div class="card" style="margin-top:12px"><h2>Recomeçar do zero</h2><p class="sub" style="font-size:12px;margin:5px 0 12px">Apaga seus dados de treino, medidas, histórico, questionário, perfil e fichas salvas na nuvem e neste dispositivo. Sua conta e seu e-mail de acesso serão mantidos. Depois, você poderá preencher o questionário novamente.</p><button class="btn" id="resetData" style="border-color:#793f42;color:#ff9999">Apagar meus dados e recomeçar</button><p id="resetMessage" class="muted" style="font-size:12px;margin-top:10px"></p></div>
 </section>
 </div>
 <nav class="tabs">
@@ -236,7 +236,43 @@ $('#exportData').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{t
 $('#exportLegacyBackup').style.display=localStorage.getItem('treinoEmDia_legacy_backup')?'inline-block':'none';
 $('#exportLegacyBackup').onclick=()=>{const raw=localStorage.getItem('treinoEmDia_legacy_backup');if(!raw)return;const a=document.createElement('a'),blob=new Blob([raw],{type:'application/json'});a.href=URL.createObjectURL(blob);a.download='treino-em-dia-backup-antigo-'+iso()+'.json';a.click();URL.revokeObjectURL(a.href)};
 $('#importFile').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(!d.profile||!d.weights||!d.program)throw Error();if(confirm('Substituir os dados atuais pelo backup?')){data=d;save();renderProgress();renderCardio();fillSettings();toast('Backup restaurado')}}catch{alert('Arquivo de backup inválido.')}e.target.value=''};r.readAsText(f)};
-$('#resetData').onclick=()=>{if(confirm('Apagar os registros de peso, cardio e sessões desta conta? Esta ação não pode ser desfeita.')){data.weights=[];data.cardio=[];data.completed={};data.logs={};save();renderDashboard();renderProgress();renderCardio();toast('Registros apagados')}};
+$('#resetData').onclick=async()=>{
+  if(!currentUser){$('#resetMessage').textContent='Entre na sua conta para apagar os dados sincronizados.';return}
+  if(!confirm('Apagar TODOS os dados desta conta e começar do zero? Seu login e sua conta serão mantidos, mas questionário, perfil, treinos, séries, cardio e medidas serão excluídos. Esta ação não pode ser desfeita.'))return;
+  const btn=$('#resetData'),msg=$('#resetMessage'),uid=currentUser.id;
+  btn.disabled=true;msg.textContent='Apagando seus dados da nuvem...';
+  window.cloudReady=false;clearTimeout(syncTimer);
+  try{
+    await syncQueue;
+    const deletions=[
+      ['exercise_sets','user_id'],
+      ['workout_sessions','user_id'],
+      ['workout_exercises','user_id'],
+      ['workout_days','user_id'],
+      ['workout_plans','user_id'],
+      ['cardio_sessions','user_id'],
+      ['body_measurements','user_id'],
+      ['questionnaires','user_id'],
+      ['profiles','id']
+    ];
+    for(const [table,column] of deletions){
+      const {error}=await cloud.from(table).delete().eq(column,uid);
+      if(error)throw new Error('Falha ao apagar '+table+': '+error.message);
+    }
+    data={profile:{name:'',initialWeight:0,height:0,weeklyGoal:3},weights:[],cardio:[],completed:{},logs:{},program:[]};
+    localStorage.setItem('treinoEmDia',JSON.stringify(data));
+    cloudDayRows=[];selectedDay=0;
+    $('#questionnaireForm').reset();
+    $('#qWeight').value='';$('#qHeight').value='';$('#qLimitations').value='';$('#qAge').value='';
+    setAppVisible(false);authGate.style.display='none';showOnboarding(true);
+    $('#onboardingMessage').textContent='Dados apagados. Sua conta continua ativa. Preencha o questionário para criar uma nova ficha.';
+    msg.textContent='';
+    toast('Dados apagados. Você pode recomeçar.');
+  }catch(err){
+    window.cloudReady=true;
+    msg.textContent='Não foi possível concluir a exclusão: '+(err.message||'erro desconhecido')+'. Seus dados podem ter sido parcialmente apagados. Atualize a página para sincronizar o estado atual.';
+  }finally{btn.disabled=false}
+};
 
 const legacyLocalData = localStorage.getItem('treinoEmDia');
 if(legacyLocalData && !localStorage.getItem('treinoEmDia_legacy_backup'))localStorage.setItem('treinoEmDia_legacy_backup',legacyLocalData);
