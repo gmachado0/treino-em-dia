@@ -121,9 +121,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   <div class="actions" id="sessionControls" style="margin:12px 0;align-items:end"><div class="field" style="max-width:260px;min-width:180px"><label for="sessionWorkoutChoice">Treino desta sessão</label><select id="sessionWorkoutChoice"></select></div><button class="btn primary" id="startWorkout">Iniciar sessão</button></div>
   <div id="exerciseList" class="workout-list"></div>
   <div class="actions" style="margin-top:15px"><button class="btn primary" id="finishWorkout">Concluir sessão</button><button class="btn" id="unfinishWorkout">Reabrir sessão</button></div>
-  <details id="workoutHistoryDropdown" style="margin-top:27px"><summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;background:var(--panel);border:1px solid var(--line);border-radius:14px"><strong>Histórico de sessões</strong><span style="display:flex;align-items:center;gap:9px"><span class="pill" id="workoutHistoryCount">0 sessões</span><span class="muted" aria-hidden="true">▾</span></span></summary>
-  <p class="sub" style="font-size:12px;margin:10px 2px">Consulte treinos concluídos e registros anteriores, inclusive de fichas antigas.</p>
-  <div id="workoutHistory" class="workout-list" style="margin-top:10px"><div class="empty">Carregando histórico...</div></div></details>
+  <div id="workoutHistorySection" style="margin-top:27px"><div class="sectionhead"><h2 id="workoutHistoryTitle">Histórico de segunda-feira</h2><span class="pill" id="workoutHistoryCount">0 sessões</span></div>
+  <p class="sub" style="font-size:12px;margin:0 0 10px 2px">Sessões realizadas neste dia programado.</p>
+  <div id="workoutHistory" class="workout-list"><div class="empty">Carregando histórico...</div></div></div>
 </section>
 
 <section id="cardio" class="view">
@@ -250,6 +250,7 @@ function renderTraining(){
  $('#finishWorkout').style.display=entry?'inline-block':'none';
  $('#unfinishWorkout').disabled=!(data.workoutEntries||[]).some(x=>(x.scheduledDay??x.day)===selectedDay&&x.date===iso()&&x.status==='completed');
  $('#unfinishWorkout').style.display=$('#unfinishWorkout').disabled?'none':'inline-block';
+ renderHistory();
 }
 function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();window.scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
@@ -261,10 +262,14 @@ $('#timerReset').onclick=()=>{clearInterval(timerInt);timerInt=null;timerSec=90;
 $('#cardioDate').value=iso();$('#weightDate').value=iso();
 $('#cardioForm').onsubmit=e=>{e.preventDefault();data.cardio.push({id:newRecordId(),date:$('#cardioDate').value,type:$('#cardioType').value,duration:+$('#cardioDuration').value,distance:$('#cardioDistance').value?+$('#cardioDistance').value:null,notes:$('#cardioNotes').value});save();e.target.reset();$('#cardioDate').value=iso();renderCardio();toast('Cardio registrado')};
 function renderHistory(){
- const root=$('#workoutHistory'),history=data.workoutHistory||[];
+ const root=$('#workoutHistory'),allHistory=data.workoutHistory||[];
+ const dayNames=['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira'];
+ const dayName=dayNames[selectedDay]||'dia selecionado';
+ const history=allHistory.filter(session=>(session.scheduledDay??session.day)===selectedDay);
+ $('#workoutHistoryTitle').textContent='Histórico de '+dayName;
  $('#workoutHistoryCount').textContent=history.length+' '+(history.length===1?'sessão':'sessões');
  root.replaceChildren();
- if(!history.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhuma sessão registrada na nuvem ainda.';root.append(empty);return}
+ if(!history.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhuma sessão registrada para '+dayName+'.';root.append(empty);return}
  history.forEach(session=>{
    const card=document.createElement('article');card.className='card';card.style.marginBottom='10px';
    const head=document.createElement('div');head.className='timerbox';
@@ -536,7 +541,7 @@ async function loadCloudData(){
   }).filter(Boolean).sort((a,b)=>a.date.localeCompare(b.date));
   const cloudEntryIds=new Set(data.workoutEntries.map(entry=>entry.id));
   localEntries.forEach(entry=>{if(entry&&entry.id&&!cloudEntryIds.has(entry.id))data.workoutEntries.push(entry)});
-  data.workoutHistory=data.workoutEntries.map(entry=>({id:entry.id,date:entry.date,status:entry.status,title:entry.title,type:entry.type,items:entry.items}));
+  data.workoutHistory=data.workoutEntries.map(entry=>({id:entry.id,date:entry.date,status:entry.status,day:entry.day,scheduledDay:entry.scheduledDay??entry.day,title:entry.title,type:entry.type,items:entry.items}));
   data.completed={};data.workoutEntries.forEach(entry=>{if(entry.status==='completed'&&cloudDayRows.some(day=>day.id===entry.planDayId)){const wk=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);data.completed[wk+'_'+(entry.scheduledDay??entry.day)]=entry.date;}});
   (setsRes.data||[]).forEach(s=>{
     const session=sessionById[s.session_id];if(!session)return;
