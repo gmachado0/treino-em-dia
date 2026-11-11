@@ -239,7 +239,7 @@ $('#resetData').onclick=()=>{if(confirm('Apagar os registros de peso, cardio e s
 
 const legacyLocalData = localStorage.getItem('treinoEmDia');
 if(legacyLocalData && !localStorage.getItem('treinoEmDia_legacy_backup'))localStorage.setItem('treinoEmDia_legacy_backup',legacyLocalData);
-const SUPABASE_URL = "https://ndmsxrbsyifremblocney.supabase.co";
+const SUPABASE_URL = "https://ndmsxrbsyifremlocney.supabase.co";
 const SUPABASE_KEY = "sb_publishable_4YHXb4Nw7bwDfbhz7lg4vg_h9nIGuXz";
 const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 window.cloudReady = false;
