@@ -120,6 +120,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   <div class="card" style="margin-bottom:12px"><div class="timerbox"><div><span class="eyebrow">Descanso entre séries</span><div class="timer" id="timerDisplay">01:30</div></div><div class="actions"><button class="btn small" id="timerStart">Iniciar</button><button class="btn small" id="timerReset">Resetar</button></div></div></div>
   <div id="exerciseList" class="workout-list"></div>
   <div class="actions" style="margin-top:15px"><button class="btn primary" id="finishWorkout">Concluir treino</button><button class="btn" id="unfinishWorkout">Desmarcar conclusão</button></div>
+  <div class="sectionhead"><h2>Histórico de sessões</h2><span class="pill" id="workoutHistoryCount">0 sessões</span></div>
+  <p class="sub" style="font-size:12px;margin-bottom:10px">Consulte treinos concluídos e registros anteriores, inclusive de fichas antigas.</p>
+  <div id="workoutHistory" class="workout-list"><div class="empty">Carregando histórico...</div></div>
 </section>
 
 <section id="cardio" class="view">
@@ -236,6 +239,33 @@ $('#timerStart').onclick=()=>{if(timerInt){clearInterval(timerInt);timerInt=null
 $('#timerReset').onclick=()=>{clearInterval(timerInt);timerInt=null;timerSec=90;$('#timerDisplay').textContent='01:30';$('#timerStart').textContent='Iniciar'};
 $('#cardioDate').value=iso();$('#weightDate').value=iso();
 $('#cardioForm').onsubmit=e=>{e.preventDefault();data.cardio.push({id:newRecordId(),date:$('#cardioDate').value,type:$('#cardioType').value,duration:+$('#cardioDuration').value,distance:$('#cardioDistance').value?+$('#cardioDistance').value:null,notes:$('#cardioNotes').value});save();e.target.reset();$('#cardioDate').value=iso();renderCardio();toast('Cardio registrado')};
+function renderHistory(){
+ const root=$('#workoutHistory'),history=data.workoutHistory||[];
+ $('#workoutHistoryCount').textContent=history.length+' '+(history.length===1?'sessão':'sessões');
+ root.replaceChildren();
+ if(!history.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhuma sessão registrada na nuvem ainda.';root.append(empty);return}
+ history.forEach(session=>{
+   const card=document.createElement('article');card.className='card';card.style.marginBottom='10px';
+   const head=document.createElement('div');head.className='timerbox';
+   const info=document.createElement('div');
+   const title=document.createElement('h3');title.style.margin='0 0 4px';title.textContent=session.title;info.append(title);
+   const meta=document.createElement('p');meta.className='sub';meta.style.fontSize='12px';meta.textContent=fmtDate(session.date)+' · '+(session.type||'Treino');info.append(meta);
+   const status=document.createElement('span');status.className='pill';status.textContent=session.status==='completed'?'Concluído':'Em andamento';
+   head.append(info,status);card.append(head);
+   const details=document.createElement('details');details.style.marginTop='12px';
+   const summary=document.createElement('summary');summary.style.cursor='pointer';summary.className='muted';summary.textContent='Ver exercícios e séries';details.append(summary);
+   const list=document.createElement('div');list.style.marginTop='10px';
+   if(!session.items.length){const p=document.createElement('p');p.className='sub';p.textContent='Sem exercícios detalhados nesta sessão.';list.append(p)}
+   session.items.forEach(item=>{
+     const block=document.createElement('div');block.style.padding='9px 0';block.style.borderTop='1px solid var(--line)';
+     const name=document.createElement('strong');name.style.fontSize='13px';name.textContent=item.name;block.append(name);
+     const sets=document.createElement('p');sets.className='sub';sets.style.fontSize='12px';sets.style.marginTop='4px';
+     sets.textContent=item.records.length?item.records.map(record=>'S'+record.number+': '+(record.load==null?'—':record.load+' kg')+' × '+(record.reps==null?'—':record.reps)+' reps'+(record.completed?' ✓':'')).join(' · '):item.sets+' séries · '+item.repetitions+' reps planejadas';
+     block.append(sets);list.append(block);
+   });
+   details.append(list);card.append(details);root.append(card);
+ });
+}
 function renderCardio(){$('#cardioHistory').innerHTML=data.cardio.length?[...data.cardio].sort((a,b)=>b.date.localeCompare(a.date)).map((c,i)=>`<div class="exercise"><div><h3>${c.type}</h3><p>${fmtDate(c.date)} · ${c.duration} min ${c.distance?'· '+c.distance+' km':''}</p>${c.notes?`<p>${c.notes}</p>`:''}</div><button class="btn small" data-del-cardio="${i}">Excluir</button></div>`).join(''):'<div class="empty">Nenhum cardio registrado ainda.</div>';$('#cardioHistory').querySelectorAll('[data-del-cardio]').forEach(b=>b.onclick=async()=>{let sorted=[...data.cardio].sort((a,b)=>b.date.localeCompare(a.date));let item=sorted[+b.dataset.delCardio];if(!await deleteCloudRecord('cardio_sessions',item))return;data.cardio.splice(data.cardio.indexOf(item),1);save();renderCardio()})}
 $('#weightForm').onsubmit=e=>{e.preventDefault();data.weights.push({id:newRecordId(),date:$('#weightDate').value,weight:+$('#weightValue').value,waist:$('#waistValue').value?+$('#waistValue').value:null,hip:$('#hipValue').value?+$('#hipValue').value:null});save();e.target.reset();$('#weightDate').value=iso();renderProgress();toast('Evolução registrada')};
 function renderProgress(){let arr=[...data.weights].sort((a,b)=>a.date.localeCompare(b.date));drawChart(arr);$('#weightHistory').innerHTML=arr.length?[...arr].reverse().map((w,i)=>`<div class="exercise" style="margin-top:8px"><div><h3>${w.weight.toFixed(1).replace('.',',')} kg</h3><p>${fmtDate(w.date)} ${w.waist?'· Cintura '+w.waist+' cm':''} ${w.hip?'· Quadril '+w.hip+' cm':''}</p></div><button class="btn small" data-del-weight="${arr.length-1-i}">Excluir</button></div>`).join(''):'<div class="empty">Nenhum registro.</div>';$('#weightHistory').querySelectorAll('[data-del-weight]').forEach(b=>b.onclick=async()=>{if(data.weights.length<=1){toast('Mantenha ao menos um registro');return}let item=data.weights[+b.dataset.delWeight];if(!await deleteCloudRecord('body_measurements',item))return;data.weights.splice(+b.dataset.delWeight,1);save();renderProgress()})}
@@ -427,16 +457,18 @@ $('#questionnaireForm').onsubmit=async e=>{
   finally{$('#generatePlanBtn').disabled=false}
 };
 async function loadCloudData(){
-  const [profileRes,qRes,planRes,measureRes,cardioRes,sessionsRes,setsRes]=await Promise.all([
+  const [profileRes,qRes,planRes,measureRes,cardioRes,sessionsRes,setsRes,allDaysRes,allItemsRes]=await Promise.all([
     cloud.from('profiles').select('*').eq('id',currentUser.id).maybeSingle(),
     cloud.from('questionnaires').select('*').eq('user_id',currentUser.id).maybeSingle(),
     cloud.from('workout_plans').select('*').eq('user_id',currentUser.id).eq('active',true).order('generated_at',{ascending:false}).limit(1).maybeSingle(),
     cloud.from('body_measurements').select('*').eq('user_id',currentUser.id).order('measurement_date'),
     cloud.from('cardio_sessions').select('*').eq('user_id',currentUser.id).order('session_date'),
     cloud.from('workout_sessions').select('*').eq('user_id',currentUser.id).order('session_date',{ascending:true}),
-    cloud.from('exercise_sets').select('*').eq('user_id',currentUser.id)
+    cloud.from('exercise_sets').select('*').eq('user_id',currentUser.id),
+    cloud.from('workout_days').select('*').eq('user_id',currentUser.id),
+    cloud.from('workout_exercises').select('*').eq('user_id',currentUser.id).order('order_number')
   ]);
-  for(const x of [profileRes,qRes,planRes,measureRes,cardioRes,sessionsRes,setsRes])if(x.error)throw x.error;
+  for(const x of [profileRes,qRes,planRes,measureRes,cardioRes,sessionsRes,setsRes,allDaysRes,allItemsRes])if(x.error)throw x.error;
   const profile=profileRes.data||{},q=qRes.data;
   data.profile={name:profile.display_name||'',initialWeight:profile.initial_weight_kg||0,height:profile.height_cm||0,weeklyGoal:profile.weekly_goal||q?.days_per_week||3};
   data.weights=(measureRes.data||[]).map(x=>({id:x.id,date:x.measurement_date,weight:Number(x.weight_kg),waist:x.waist_cm?Number(x.waist_cm):null,hip:x.hip_cm?Number(x.hip_cm):null}));
@@ -466,6 +498,18 @@ async function loadCloudData(){
       }
     }
   });
+  const allDaysById=new Map((allDaysRes.data||[]).map(d=>[d.id,d]));
+  const itemsByDay=new Map();
+  (allItemsRes.data||[]).forEach(it=>{if(!itemsByDay.has(it.workout_day_id))itemsByDay.set(it.workout_day_id,[]);itemsByDay.get(it.workout_day_id).push(it)});
+  const setsBySession=new Map();
+  (setsRes.data||[]).forEach(set=>{if(!setsBySession.has(set.session_id))setsBySession.set(set.session_id,[]);setsBySession.get(set.session_id).push(set)});
+  data.workoutHistory=(sessionsRes.data||[]).map(session=>{
+    const day=allDaysById.get(session.workout_day_id);
+    if(!day)return null;
+    const dayItems=itemsByDay.get(day.id)||[];
+    const sets=setsBySession.get(session.id)||[];
+    return {id:session.id,date:session.session_date,status:session.status,title:day.title||'Treino',type:day.training_type||'',items:dayItems.map(item=>({name:item.exercise_name,sets:(item.sets||0),repetitions:item.repetitions||'',records:sets.filter(set=>set.exercise_name===item.exercise_name).sort((a,b)=>a.set_number-b.set_number).map(set=>({number:set.set_number,load:set.load_kg,reps:set.repetitions,completed:set.completed}))}))};
+  }).filter(Boolean).sort((a,b)=>b.date.localeCompare(a.date));
   (setsRes.data||[]).forEach(s=>{
     const session=sessionById[s.session_id];if(!session)return;
     const day=cloudDayRows.find(d=>d.id===session.workout_day_id);if(!day)return;
@@ -566,7 +610,7 @@ async function startCloudSession(session){
     if(!data.program.length){await createCloudPlan(questionnaire)}
     window.cloudReady=true;
     setAppVisible(true);showOnboarding(false);
-    localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard();renderTraining();renderCardio();renderProgress();fillSettings();
+    localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard();renderTraining();renderHistory();renderCardio();renderProgress();fillSettings();
   }catch(err){setAppVisible(false);authMessage('Erro ao carregar seus dados: '+(err.message||'tente novamente'))}
 }
 cloud.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>startCloudSession(session),0)});
