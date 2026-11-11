@@ -441,7 +441,7 @@ async function loadCloudData(){
   data.profile={name:profile.display_name||'',initialWeight:profile.initial_weight_kg||0,height:profile.height_cm||0,weeklyGoal:profile.weekly_goal||q?.days_per_week||3};
   data.weights=(measureRes.data||[]).map(x=>({id:x.id,date:x.measurement_date,weight:Number(x.weight_kg),waist:x.waist_cm?Number(x.waist_cm):null,hip:x.hip_cm?Number(x.hip_cm):null}));
   data.cardio=(cardioRes.data||[]).map(x=>({id:x.id,date:x.session_date,type:x.modality,duration:x.duration_min,distance:x.distance_km?Number(x.distance_km):null,notes:x.notes||''}));
-  data.completed={};data.logs={};
+  data.completed={};data.logs={};data.sessionIds={};data.setIds={};
   if(planRes.data){
     const {data:days,error}=await cloud.from('workout_days').select('*').eq('user_id',currentUser.id).eq('plan_id',planRes.data.id).order('day_number');
     if(error)throw error;cloudDayRows=days||[];
@@ -456,9 +456,14 @@ async function loadCloudData(){
   const sessionById={};
   (sessionsRes.data||[]).forEach(s=>{
     sessionById[s.id]=s;
-    if(s.status==='completed'&&s.workout_day_id){
+    if(s.workout_day_id){
       const day=cloudDayRows.find(d=>d.id===s.workout_day_id);
-      if(day){const wk=new Date(s.session_date+'T12:00:00');wk.setDate(wk.getDate()-(wk.getDay()+6)%7);data.completed[wk.toISOString().slice(0,10)+'_'+(day.day_number-1)]=s.created_at||s.session_date}
+      if(day){
+        const wkDate=new Date(s.session_date+'T12:00:00');wkDate.setDate(wkDate.getDate()-(wkDate.getDay()+6)%7);
+        const sessionKey=wkDate.toISOString().slice(0,10)+'_'+(day.day_number-1);
+        data.sessionIds[sessionKey]=s.id;
+        if(s.status==='completed')data.completed[sessionKey]=s.created_at||s.session_date;
+      }
     }
   });
   (setsRes.data||[]).forEach(s=>{
@@ -466,6 +471,7 @@ async function loadCloudData(){
     const day=cloudDayRows.find(d=>d.id===session.workout_day_id);if(!day)return;
     const p=data.program.find(x=>x.day===day.day_number-1);if(!p)return;
     const idx=p.items.findIndex(x=>x[0]===s.exercise_name);if(idx<0)return;
+    data.setIds[s.session_id+'_'+idx+'_'+(s.set_number-1)]=s.id;
     const key=day.day_number-1+'_'+idx;data.logs[key]??=[];data.logs[key][s.set_number-1]={load:s.load_kg,reps:s.repetitions,done:s.completed};
   });
   
