@@ -192,7 +192,7 @@ data.cardio=(data.cardio||[]).map(x=>({...x,id:x.id||newRecordId()}));
 let selectedDay=0,timerSec=90,timerInt=null;
 function save(){localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard();if(window.cloudReady)scheduleCloudSync()}
 async function deleteCloudRecord(table,item){if(window.cloudReady&&currentUser&&item.id){const {error}=await cloud.from(table).delete().eq('id',item.id).eq('user_id',currentUser.id);if(error){toast('Não foi possível excluir o registro na nuvem.');return false}}return true}
-async function deleteCloudSession(key){const id=data.sessionIds?.[key];if(window.cloudReady&&currentUser&&id){const {error}=await cloud.from('workout_sessions').delete().eq('id',id).eq('user_id',currentUser.id);if(error){toast('Não foi possível atualizar a sessão na nuvem.');return false}}if(data.sessionIds)delete data.sessionIds[key];return true}
+async function deleteCloudSession(key){const dayIndex=+key.split('_')[1],dayRow=cloudDayRows.find(x=>x.day_number===dayIndex+1),mapKey=dayRow?key+'_'+dayRow.id:key,id=data.sessionIds?.[mapKey];if(window.cloudReady&&currentUser&&id){const {error}=await cloud.from('workout_sessions').delete().eq('id',id).eq('user_id',currentUser.id);if(error){toast('Não foi possível atualizar a sessão na nuvem.');return false}}if(data.sessionIds)delete data.sessionIds[mapKey];return true}
 function toast(msg){let t=$('#toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2200)}
 function fmtDate(d){return new Date(d+'T12:00:00').toLocaleDateString('pt-BR')}
 function monday(d=new Date()){let x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-(x.getDay()+6)%7);return x}
@@ -460,9 +460,9 @@ async function loadCloudData(){
       const day=cloudDayRows.find(d=>d.id===s.workout_day_id);
       if(day){
         const wkDate=new Date(s.session_date+'T12:00:00');wkDate.setDate(wkDate.getDate()-(wkDate.getDay()+6)%7);
-        const sessionKey=wkDate.toISOString().slice(0,10)+'_'+(day.day_number-1);
+        const completedKey=wkDate.toISOString().slice(0,10)+'_'+(day.day_number-1),sessionKey=completedKey+'_'+day.id;
         data.sessionIds[sessionKey]=s.id;
-        if(s.status==='completed')data.completed[sessionKey]=s.created_at||s.session_date;
+        if(s.status==='completed')data.completed[completedKey]=s.created_at||s.session_date;
       }
     }
   });
@@ -504,14 +504,14 @@ async function syncCloudData(){
     Object.keys(data.completed||{}).forEach(k=>{
       const parts=k.split('_'),week=parts[0],day=+parts[1],d=new Date(week+'T12:00:00');d.setDate(d.getDate()+day);
       const date=d.toISOString().slice(0,10),dayRow=cloudDayRows.find(x=>x.day_number===day+1);
-      if(dayRow)desired.set(week+'_'+day,{key:week+'_'+day,user_id:uid,workout_day_id:dayRow.id,session_date:date,status:'completed'});
+      if(dayRow){const key=week+'_'+day+'_'+dayRow.id;desired.set(key,{key,user_id:uid,workout_day_id:dayRow.id,session_date:date,status:'completed'})}
     });
     const currentWeek=monday().toISOString().slice(0,10);
     const loggedDays=new Set(Object.keys(data.logs||{}).filter(k=>(data.logs[k]||[]).some(s=>s&&(s.load!==undefined&&s.load!==''||s.reps!==undefined&&s.reps!==''||s.done))).map(k=>+k.split('_')[0]));
     loggedDays.forEach(day=>{
       const d=new Date(currentWeek+'T12:00:00');d.setDate(d.getDate()+day);
-      const date=d.toISOString().slice(0,10),dayRow=cloudDayRows.find(x=>x.day_number===day+1),key=currentWeek+'_'+day;
-      if(dayRow&&!desired.has(key))desired.set(key,{key,user_id:uid,workout_day_id:dayRow.id,session_date:date,status:'in_progress'});
+      const date=d.toISOString().slice(0,10),dayRow=cloudDayRows.find(x=>x.day_number===day+1);
+      if(dayRow){const key=currentWeek+'_'+day+'_'+dayRow.id;if(!desired.has(key))desired.set(key,{key,user_id:uid,workout_day_id:dayRow.id,session_date:date,status:'in_progress'})}
     });
 
     const sessionRows=[];
