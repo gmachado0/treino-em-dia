@@ -273,6 +273,7 @@ async function reopenWorkoutSession(sessionId){
   if(otherActive){toast('Conclua ou finalize a sessão em andamento antes de editar outra.');return}
   if(entry.status==='completed'&&!confirm('Editar esta sessão do histórico? Os registros atuais serão mantidos e poderão ser ajustados.'))return;
   entry.status='in_progress';editingSessionId=entry.id;data.editingSessionId=entry.id;
+  const historyEntry=(data.workoutHistory||[]).find(x=>x.id===entry.id);if(historyEntry)historyEntry.status='in_progress';
   selectedDay=entry.scheduledDay??entry.day;selectedWorkoutDay=entry.day;
   const entryWeek=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);const key=entryWeek+'_'+selectedDay;
   if(!(data.workoutEntries||[]).some(x=>x.id!==entry.id&&x.status==='completed'&&(x.scheduledDay??x.day)===selectedDay&&monday(new Date(x.date+'T12:00:00')).toISOString().slice(0,10)===entryWeek))delete data.completed[key];
