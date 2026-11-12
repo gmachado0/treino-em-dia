@@ -1066,6 +1066,12 @@ function renderProfessionalDirectory(){
   if(p._distanceKm!==null){const distance=document.createElement('p');distance.textContent='Aproximadamente '+(p._distanceKm<10?p._distanceKm.toFixed(1).replace('.',','):Math.round(p._distanceKm))+' km de você';distance.style.color='var(--accent)';distance.style.fontSize='12px';info.append(distance)}
   if(Number(p.review_count)>0){const rating=document.createElement('p');rating.textContent='★ '+Number(p.average_rating).toFixed(1).replace('.',',')+' · '+p.review_count+' avaliações';rating.style.color='var(--accent)';rating.style.fontSize='13px';info.append(rating)}
   if((p.specialties||[]).length){const specialties=document.createElement('p');specialties.className='muted';specialties.style.fontSize='12px';specialties.textContent=p.specialties.slice(0,3).join(' · ');info.append(specialties)}
+  const paymentMethods=paymentMethodLabels(p.payment_methods);
+  if(paymentMethods.length){
+   const paymentTags=document.createElement('div');paymentTags.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:8px';
+   paymentMethods.forEach(label=>{const tag=document.createElement('span');tag.textContent=label;tag.style.cssText='display:inline-flex;align-items:center;padding:4px 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);color:var(--text);font-size:11px;line-height:1.3';paymentTags.append(tag)});
+   info.append(paymentTags);
+  }
   const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='10px';
   const detailsButton=document.createElement('button');detailsButton.type='button';detailsButton.className='btn small';detailsButton.textContent='Ver perfil';detailsButton.onclick=open;actions.append(detailsButton);
   info.append(actions);card.append(info);root.append(card);
