@@ -189,6 +189,11 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
       <div class="field"><label for="directoryCityFilter">Buscar por cidade</label><input id="directoryCityFilter" type="search" maxlength="100" placeholder="Ex.: Porto Alegre"></div>
       <div class="field"><label for="directoryStateFilter">Estado</label><select id="directoryStateFilter"><option value="">Todos os estados</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
     </div>
+    <div class="formrow" style="margin-top:10px;align-items:end">
+      <div class="field"><label for="directoryDistanceFilter">Distância máxima</label><select id="directoryDistanceFilter"><option value="">Qualquer distância</option><option value="5">Até 5 km</option><option value="10">Até 10 km</option><option value="25">Até 25 km</option><option value="50">Até 50 km</option><option value="100">Até 100 km</option></select></div>
+      <button type="button" class="btn small" id="directoryNearbyBtn">Usar minha localização</button>
+    </div>
+    <p id="directoryLocationStatus" class="sub" style="font-size:12px;margin:8px 0 0">A distância será estimada em linha reta. Sua localização só será usada após sua autorização.</p>
     <button type="button" class="btn small" id="clearDirectoryFilters" style="margin-top:10px">Limpar filtros</button>
   </div>
   <div id="professionalDirectory" class="workout-list"><div class="empty">Carregando profissionais...</div></div>
@@ -487,6 +492,7 @@ const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 window.cloudReady = false;
 let currentUser = null, cloudDayRows = [], allCloudDayRows = [], allCloudItems = [], syncTimer = null, syncQueue = Promise.resolve();
 let isAppAdmin=false, myProfessional=null, directoryProfessionals=[];
+let directoryUserLocation=null;
 let authMode = 'login';
 const authGate = $('#authGate');
 function authMessage(msg){$('#authMessage').textContent=msg||''}
@@ -772,24 +778,38 @@ function safeContactHref(value,type){
 }
 function professionalStatusLabel(status){return ({pending:'Em análise',approved:'Aprovado',rejected:'Não aprovado',suspended:'Suspenso'})[status]||'Não cadastrado'}
 function normalizeDirectoryText(value){return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim().toLocaleLowerCase('pt-BR')}
+function haversineKm(aLat,aLon,bLat,bLon){
+ const rad=value=>value*Math.PI/180, dLat=rad(bLat-aLat),dLon=rad(bLon-aLon);
+ const x=Math.sin(dLat/2)**2+Math.cos(rad(aLat))*Math.cos(rad(bLat))*Math.sin(dLon/2)**2;
+ return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
 function renderProfessionalDirectory(){
  const root=$('#professionalDirectory');root.replaceChildren();
  const cityFilter=normalizeDirectoryText($('#directoryCityFilter')?.value);
  const stateFilter=String($('#directoryStateFilter')?.value||'').toUpperCase();
- const filtered=directoryProfessionals.filter(p=>{
+ const maxDistance=Number($('#directoryDistanceFilter')?.value||0);
+ const filtered=directoryProfessionals.map(p=>{
+  const distance=directoryUserLocation&&Number.isFinite(Number(p.latitude))&&Number.isFinite(Number(p.longitude))
+   ?haversineKm(directoryUserLocation.latitude,directoryUserLocation.longitude,Number(p.latitude),Number(p.longitude)):null;
+  return {...p,_distanceKm:distance};
+ }).filter(p=>{
   const cityOk=!cityFilter||normalizeDirectoryText(p.city).includes(cityFilter);
   const stateOk=!stateFilter||String(p.state||'').toUpperCase()===stateFilter;
-  return cityOk&&stateOk;
+  const distanceOk=!maxDistance||p._distanceKm!==null&&p._distanceKm<=maxDistance;
+  return cityOk&&stateOk&&distanceOk;
  });
+ if(directoryUserLocation)filtered.sort((a,b)=>(a._distanceKm??Infinity)-(b._distanceKm??Infinity));
  $('#directoryCount').textContent=filtered.length===directoryProfessionals.length?directoryProfessionals.length+' perfis':filtered.length+' de '+directoryProfessionals.length+' perfis';
  if(!directoryProfessionals.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Ainda não há profissionais aprovados no diretório.';root.append(empty);return}
- if(!filtered.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum profissional encontrado com esses filtros. Tente outra cidade ou estado.';root.append(empty);return}
+ if(!filtered.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum profissional encontrado com esses filtros. Tente ampliar a distância ou alterar a cidade/estado.';root.append(empty);return}
  filtered.forEach(p=>{
   const card=document.createElement('div');card.className='exercise';card.style.marginBottom='9px';
   const info=document.createElement('div');info.style.flex='1';
   if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Foto de '+p.full_name;photo.loading='lazy';photo.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:50%;float:right;margin:0 0 8px 12px;border:1px solid var(--line)';info.append(photo)}
   const name=document.createElement('h3');name.textContent=p.full_name;info.append(name);
   const location=document.createElement('p');location.textContent=[p.city,p.state].filter(Boolean).join(' / ')||'Localização não informada';info.append(location);
+  if(p._distanceKm!==null){const distance=document.createElement('p');distance.textContent='Aproximadamente '+(p._distanceKm<10?p._distanceKm.toFixed(1).replace('.',','):Math.round(p._distanceKm))+' km de você';distance.style.color='var(--accent)';info.append(distance)}
+  else if(directoryUserLocation){const noDistance=document.createElement('p');noDistance.textContent='Distância indisponível para este perfil';noDistance.className='muted';info.append(noDistance)}
   const cref=document.createElement('p');cref.textContent='CREF: '+p.cref_number+' / '+p.cref_state;info.append(cref);
   if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;bio.style.marginTop='7px';info.append(bio)}
   if((p.specialties||[]).length){const tags=document.createElement('p');tags.textContent='Especialidades: '+p.specialties.join(', ');info.append(tags)}
@@ -804,8 +824,27 @@ function renderProfessionalDirectory(){
 }
 $('#directoryCityFilter').addEventListener('input',renderProfessionalDirectory);
 $('#directoryStateFilter').addEventListener('change',renderProfessionalDirectory);
-$('#clearDirectoryFilters').addEventListener('click',()=>{$('#directoryCityFilter').value='';$('#directoryStateFilter').value='';renderProfessionalDirectory()});
-
+$('#directoryDistanceFilter').addEventListener('change',renderProfessionalDirectory);
+$('#directoryNearbyBtn').addEventListener('click',()=>{
+ const status=$('#directoryLocationStatus'),button=$('#directoryNearbyBtn');
+ if(!navigator.geolocation){status.textContent='Este navegador não oferece acesso à localização. Use os filtros de cidade e estado.';return}
+ button.disabled=true;status.textContent='Solicitando autorização de localização...';
+ navigator.geolocation.getCurrentPosition(position=>{
+  directoryUserLocation={latitude:position.coords.latitude,longitude:position.coords.longitude};
+  button.disabled=false;button.textContent='Atualizar localização';
+  status.textContent='Localização ativada. Os profissionais foram ordenados pela distância estimada em linha reta; suas coordenadas não são salvas.';
+  renderProfessionalDirectory();
+ },error=>{
+  button.disabled=false;
+  status.textContent=error.code===1?'Acesso à localização negado. Você pode continuar usando os filtros de cidade e estado.':'Não foi possível obter sua localização. Verifique o GPS e tente novamente.';
+ },{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
+});
+$('#clearDirectoryFilters').addEventListener('click',()=>{
+ $('#directoryCityFilter').value='';$('#directoryStateFilter').value='';$('#directoryDistanceFilter').value='';
+ directoryUserLocation=null;$('#directoryNearbyBtn').textContent='Usar minha localização';
+ $('#directoryLocationStatus').textContent='A distância será estimada em linha reta. Sua localização só será usada após sua autorização.';
+ renderProfessionalDirectory();
+});
 function renderProfessionalAdminList(rows){
  const root=$('#professionalAdminList');root.replaceChildren();
  if(!rows.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum cadastro profissional encontrado.';root.append(empty);return}
@@ -886,10 +925,23 @@ $('#professionalForm').onsubmit=async e=>{
   cref_state:$('#proCrefState').value,bio:$('#proBio').value.trim()||null,
   specialties:splitTags($('#proSpecialties').value),modalities:splitTags($('#proModalities').value),
   city:$('#proCity').value.trim()||null,state:$('#proState').value||null,
+  latitude:myProfessional?.latitude??null,longitude:myProfessional?.longitude??null,
   profile_photo_url:myProfessional?.profile_photo_url||null,
   contact_email:$('#proEmail').value.trim()||null,whatsapp:$('#proWhatsapp').value.trim()||null
  };
  try{
+  const cityChanged=payload.city!== (myProfessional?.city||null)||payload.state!==(myProfessional?.state||null);
+  if(payload.city&&payload.state&&(!myProfessional?.latitude||!myProfessional?.longitude||cityChanged)){
+   setProfessionalMessage('Localizando aproximadamente o centro da cidade do perfil...');
+   try{
+    const params=new URLSearchParams({city:payload.city,state:payload.state,country:'Brazil',format:'jsonv2',limit:'1'});
+    const response=await fetch('https://nominatim.openstreetmap.org/search?'+params.toString(),{headers:{'Accept':'application/json'}});
+    if(!response.ok)throw new Error('Serviço de localização indisponível');
+    const places=await response.json();
+    if(places.length){payload.latitude=Number(places[0].lat);payload.longitude=Number(places[0].lon)}
+    else{payload.latitude=null;payload.longitude=null}
+   }catch(geoError){console.warn('Geocodificação da cidade não disponível:',geoError);payload.latitude=cityChanged?null:(myProfessional?.latitude??null);payload.longitude=cityChanged?null:(myProfessional?.longitude??null)}
+  }else if(!payload.city||!payload.state){payload.latitude=null;payload.longitude=null}
   const selectedPhoto=$('#proPhotoFile').files?.[0]||null;
   if(selectedPhoto){setProfessionalMessage('Enviando foto e salvando cadastro...');payload.profile_photo_url=await uploadProfessionalPhoto(selectedPhoto)}
   if(myProfessional){
