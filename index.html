@@ -191,7 +191,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <form id="professionalForm">
       <div class="formrow"><div class="field"><label>Nome profissional</label><input id="proName" maxlength="120" required placeholder="Nome completo"></div><div class="field"><label>CREF</label><input id="proCref" maxlength="40" required placeholder="Número do registro"></div></div>
       <div class="formrow" style="margin-top:10px"><div class="field"><label>Estado do CREF</label><select id="proCrefState" required><option value="">Selecione</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div><div class="field"><label>E-mail para contato</label><input id="proEmail" type="email" maxlength="180" placeholder="contato@exemplo.com"></div></div>
-      <div class="formrow" style="margin-top:10px"><div class="field"><label>WhatsApp (com DDD)</label><input id="proWhatsapp" maxlength="25" placeholder="5551999999999"></div><div class="field"><label>Foto de perfil (URL opcional)</label><input id="proPhoto" type="url" maxlength="500" placeholder="https://..."></div></div>
+      <div class="formrow" style="margin-top:10px"><div class="field"><label>WhatsApp (com DDD)</label><input id="proWhatsapp" maxlength="25" placeholder="5551999999999"></div><div class="field"><label for="proPhotoFile">Foto de perfil</label><input id="proPhotoFile" type="file" accept="image/jpeg,image/png,image/webp" style="padding:8px"><small class="muted">JPG, PNG ou WebP · até 5 MB</small><div id="proPhotoPreviewWrap" style="display:none;align-items:center;gap:10px;margin-top:7px"><img id="proPhotoPreview" alt="Prévia da foto de perfil" style="width:64px;height:64px;object-fit:cover;border-radius:50%;border:1px solid var(--line)"><span class="muted" id="proPhotoPreviewLabel" style="font-size:12px">Foto selecionada</span></div></div></div>
       <div class="formrow" style="margin-top:10px"><div class="field"><label>Cidade</label><input id="proCity" maxlength="100" placeholder="Sua cidade"></div><div class="field"><label>Estado</label><select id="proState"><option value="">Selecione</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div></div>
       <div class="field" style="margin-top:10px"><label>Especialidades (separadas por vírgula)</label><input id="proSpecialties" maxlength="500" placeholder="Emagrecimento, musculação, treinamento funcional"></div>
       <div class="field" style="margin-top:10px"><label>Modalidades de atendimento (separadas por vírgula)</label><input id="proModalities" maxlength="300" placeholder="Presencial, online, avaliação física"></div>
@@ -771,6 +771,7 @@ function renderProfessionalDirectory(){
  directoryProfessionals.forEach(p=>{
   const card=document.createElement('div');card.className='exercise';card.style.marginBottom='9px';
   const info=document.createElement('div');info.style.flex='1';
+  if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Foto de '+p.full_name;photo.loading='lazy';photo.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:50%;float:right;margin:0 0 8px 12px;border:1px solid var(--line)';info.append(photo)}
   const name=document.createElement('h3');name.textContent=p.full_name;info.append(name);
   const location=document.createElement('p');location.textContent=[p.city,p.state].filter(Boolean).join(' / ')||'Localização não informada';info.append(location);
   const cref=document.createElement('p');cref.textContent='CREF: '+p.cref_number+' / '+p.cref_state;info.append(cref);
@@ -820,7 +821,9 @@ async function loadProfessionalArea(){
  $('#proCrefState').value=myProfessional?.cref_state||'';
  $('#proEmail').value=myProfessional?.contact_email||currentUser.email||'';
  $('#proWhatsapp').value=myProfessional?.whatsapp||'';
- $('#proPhoto').value=myProfessional?.profile_photo_url||'';
+ $('#proPhotoFile').value='';
+ $('#proPhotoPreviewWrap').style.display=myProfessional?.profile_photo_url?'flex':'none';
+ if(myProfessional?.profile_photo_url){$('#proPhotoPreview').src=myProfessional.profile_photo_url;$('#proPhotoPreviewLabel').textContent='Foto atual';}else{$('#proPhotoPreview').removeAttribute('src');}
  $('#proCity').value=myProfessional?.city||'';
  $('#proState').value=myProfessional?.state||'';
  $('#proSpecialties').value=(myProfessional?.specialties||[]).join(', ');
@@ -837,6 +840,24 @@ async function loadProfessionalArea(){
   renderProfessionalAdminList(adminRows.data||[]);
  }
 }
+function previewProfessionalPhoto(file){
+ const wrap=$('#proPhotoPreviewWrap'),img=$('#proPhotoPreview'),label=$('#proPhotoPreviewLabel');
+ if(!file){wrap.style.display=myProfessional?.profile_photo_url?'flex':'none';if(myProfessional?.profile_photo_url){img.src=myProfessional.profile_photo_url;label.textContent='Foto atual'}return}
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type)){setProfessionalMessage('Formato inválido. Use JPG, PNG ou WebP.',true);$('#proPhotoFile').value='';return}
+ if(file.size>5*1024*1024){setProfessionalMessage('A foto deve ter no máximo 5 MB.',true);$('#proPhotoFile').value='';return}
+ img.src=URL.createObjectURL(file);wrap.style.display='flex';label.textContent=file.name;setProfessionalMessage('');
+}
+$('#proPhotoFile').addEventListener('change',e=>previewProfessionalPhoto(e.target.files?.[0]||null));
+async function uploadProfessionalPhoto(file){
+ if(!file)return myProfessional?.profile_photo_url||null;
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Formato inválido. Use JPG, PNG ou WebP.');
+ if(file.size>5*1024*1024)throw new Error('A foto deve ter no máximo 5 MB.');
+ const ext=({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'})[file.type];
+ const path=currentUser.id+'/'+crypto.randomUUID()+'.'+ext;
+ const {error}=await cloud.storage.from('professional-photos').upload(path,file,{contentType:file.type,cacheControl:'3600',upsert:false});
+ if(error)throw error;
+ return cloud.storage.from('professional-photos').getPublicUrl(path).data.publicUrl;
+}
 $('#professionalForm').onsubmit=async e=>{
  e.preventDefault();if(!currentUser||!window.cloudReady){setProfessionalMessage('Entre na sua conta para continuar.',true);return}
  const btn=$('#saveProfessional');btn.disabled=true;setProfessionalMessage('Salvando cadastro...');
@@ -845,10 +866,12 @@ $('#professionalForm').onsubmit=async e=>{
   cref_state:$('#proCrefState').value,bio:$('#proBio').value.trim()||null,
   specialties:splitTags($('#proSpecialties').value),modalities:splitTags($('#proModalities').value),
   city:$('#proCity').value.trim()||null,state:$('#proState').value||null,
-  profile_photo_url:$('#proPhoto').value.trim()||null,
+  profile_photo_url:myProfessional?.profile_photo_url||null,
   contact_email:$('#proEmail').value.trim()||null,whatsapp:$('#proWhatsapp').value.trim()||null
  };
  try{
+  const selectedPhoto=$('#proPhotoFile').files?.[0]||null;
+  if(selectedPhoto){setProfessionalMessage('Enviando foto e salvando cadastro...');payload.profile_photo_url=await uploadProfessionalPhoto(selectedPhoto)}
   if(myProfessional){
    if(myProfessional.status==='rejected')payload.status='pending';
    const {error}=await cloud.from('professionals').update(payload).eq('id',myProfessional.id).eq('user_id',currentUser.id);if(error)throw error;
