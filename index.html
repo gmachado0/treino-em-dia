@@ -40,6 +40,65 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
 .checkitem input{width:auto;accent-color:var(--accent)}
 #cloudAccount{display:none;align-items:center;gap:8px}
 @media(max-width:600px){.auth-card,.onboard-wrap{padding:18px}.checkgrid{grid-template-columns:1fr}}
+
+/* Mobile readability pass v1 */
+.sectionhead{margin:32px 0 15px}
+.sectionhead h2{line-height:1.25}
+.card,.stat{line-height:1.5}
+.card p{line-height:1.55}
+.actions{gap:10px}
+.btn,.iconbtn{min-height:40px}
+.pill{line-height:1.35}
+@media(max-width:650px){
+  .app{padding:20px 16px calc(112px + env(safe-area-inset-bottom))}
+  .top{margin-bottom:28px;gap:14px}
+  .brand{gap:10px}
+  .sectionhead{margin:34px 0 16px;align-items:flex-end}
+  .sectionhead h2{font-size:18px}
+  h1{font-size:29px;line-height:1.16;letter-spacing:-.8px;margin-bottom:10px}
+  h2{font-size:19px;line-height:1.25}
+  .sub{line-height:1.55;max-width:58ch}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .grid>:last-child:nth-child(odd){grid-column:1/-1}
+  .stat,.card{padding:16px;border-radius:16px}
+  .stat label,.eyebrow{font-size:10px;letter-spacing:.8px;line-height:1.4}
+  .stat strong{font-size:24px;line-height:1.2;margin-top:8px}
+  .stat span{display:block;font-size:12px;line-height:1.45;margin-top:5px}
+  .week{gap:8px}
+  .day{padding:11px 9px;min-height:88px;border-radius:13px}
+  .day b{margin-bottom:9px}
+  .workout-list{gap:12px}
+  .exercise{padding:15px;gap:12px;border-radius:15px}
+  .exercise h3{font-size:15px;line-height:1.35;margin-bottom:5px}
+  .exercise p,.exercise .meta{font-size:12px;line-height:1.5}
+  .exercise .meta{margin-top:8px}
+  .formrow{gap:12px}
+  .field{gap:8px}
+  .field label{font-size:12px;line-height:1.4}
+  input,select{min-height:44px;padding:12px}
+  textarea{min-height:120px;padding:13px}
+  .actions{gap:9px}
+  .actions .btn{flex:0 1 auto}
+  .tabs{gap:3px;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  .tabs button{padding:8px 3px;min-width:0;font-size:10px;line-height:1.25;border-radius:10px}
+  .tabs span{font-size:19px;margin-bottom:4px}
+  .review-panel{margin-top:16px;padding:15px;border-radius:14px}
+  .review-panel h4{line-height:1.4}
+  .review-meta{font-size:11px;line-height:1.5}
+  .setrow{gap:8px;margin-top:10px}
+  .setrow input{padding:9px;min-height:40px}
+  .timerbox{align-items:flex-start;flex-wrap:wrap}
+  table{font-size:12px}
+  td,th{padding:12px 8px;line-height:1.45}
+}
+@media(max-width:380px){
+  .app{padding-left:13px;padding-right:13px}
+  .stat,.card{padding:14px}
+  .grid{gap:9px}
+  .tabs button{font-size:9px}
+  .tabs span{font-size:18px}
+}
+
 </style>
 </head>
 <body>
