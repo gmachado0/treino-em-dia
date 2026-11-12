@@ -1328,7 +1328,7 @@ async function deleteProfessionalAdmin(profile){
   ?'Este perfil está vinculado a uma conta profissional. A exclusão removerá somente o perfil, não a conta de acesso. Deseja continuar?'
   :'Deseja excluir definitivamente este cadastro profissional?';
  if(!confirm(warning))return;
- const {error}=await cloud.from('professionals').delete().eq('id',profile.id);
+ const {error}=await cloud.rpc('admin_delete_professional',{p_professional_id:profile.id});
  if(error){toast('Não foi possível excluir o cadastro: '+error.message);return}
  if(myProfessional?.id===profile.id)myProfessional=null;
  await loadProfessionalArea();toast('Cadastro profissional excluído.');
