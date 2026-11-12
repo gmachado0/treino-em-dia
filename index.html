@@ -889,6 +889,7 @@ function renderProfessionalAdminList(rows,unlinkedAccounts=[]){
    linkRow.append(select,linkButton);info.append(linkRow);
   }
   const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='9px';
+  const editButton=document.createElement('button');editButton.className='btn small';editButton.textContent='Editar dados';editButton.onclick=()=>editProfessionalAdmin(p);actions.append(editButton);
   [['approved','Aprovar'],['rejected','Rejeitar'],['suspended','Suspender'],['pending','Voltar para análise']].forEach(([status,label])=>{
    const b=document.createElement('button');b.className='btn small';b.textContent=label;b.disabled=p.status===status;b.onclick=()=>reviewProfessional(p.id,status);actions.append(b);
   });
@@ -923,7 +924,7 @@ async function loadProfessionalArea(){
  $('#proModalities').value=(myProfessional?.modalities||[]).join(', ');
  $('#proBio').value=myProfessional?.bio||'';
  $('#saveProfessional').textContent=myProfessional?'Atualizar cadastro':'Enviar cadastro para análise';
- if(myProfessional?.status==='approved')setProfessionalMessage('Seu perfil está publicado no diretório. Alterações nos dados de perfil não removem automaticamente a aprovação; mantenha o CREF e as informações atualizados.');
+ if(myProfessional?.status==='approved')setProfessionalMessage('Seu perfil está publicado no diretório. Alterações nos dados principais exigem nova análise administrativa.');
  else if(myProfessional?.status==='pending')setProfessionalMessage('Seu cadastro está aguardando análise administrativa.');
  else if(myProfessional?.status==='rejected')setProfessionalMessage('Seu cadastro não foi aprovado. Você pode atualizar as informações e reenviar para análise.');
  else if(myProfessional?.status==='suspended')setProfessionalMessage('Seu perfil está suspenso e não aparece no diretório.');
@@ -992,6 +993,26 @@ $('#professionalForm').onsubmit=async e=>{
  }catch(err){setProfessionalMessage(err.message||'Não foi possível salvar o cadastro.',true)}
  finally{btn.disabled=false}
 };
+async function editProfessionalAdmin(profile){
+ if(!isAppAdmin||!profile)return;
+ const ask=(label,current)=>{const value=prompt(label,current??'');return value===null?null:value.trim()};
+ const full_name=ask('Nome completo',profile.full_name);if(full_name===null)return;
+ const cref_number=ask('Número do CREF',profile.cref_number);if(cref_number===null)return;
+ const cref_state=ask('Estado do CREF (UF)',profile.cref_state);if(cref_state===null)return;
+ const contact_email=ask('E-mail de contato',profile.contact_email);if(contact_email===null)return;
+ const whatsapp=ask('WhatsApp com DDD',profile.whatsapp);if(whatsapp===null)return;
+ const city=ask('Cidade',profile.city);if(city===null)return;
+ const state=ask('Estado da cidade (UF)',profile.state);if(state===null)return;
+ const specialties=ask('Especialidades separadas por vírgula',(profile.specialties||[]).join(', '));if(specialties===null)return;
+ const modalities=ask('Modalidades separadas por vírgula',(profile.modalities||[]).join(', '));if(modalities===null)return;
+ const bio=ask('Apresentação profissional',profile.bio);if(bio===null)return;
+ const locationChanged=city!==(profile.city||'')||state!==(profile.state||'');
+ const patch={full_name,cref_number,cref_state:cref_state.toUpperCase(),contact_email:contact_email||null,whatsapp:whatsapp||null,city:city||null,state:state?state.toUpperCase():null,specialties:splitTags(specialties),modalities:splitTags(modalities),bio:bio||null};
+ if(locationChanged){patch.latitude=null;patch.longitude=null}
+ const {error}=await cloud.from('professionals').update(patch).eq('id',profile.id);
+ if(error){toast('Não foi possível editar o perfil: '+error.message);return}
+ await loadProfessionalArea();toast('Dados do perfil atualizados. Se estava aprovado, o perfil voltará para análise.');
+}
 async function linkProfessionalAccount(profileId,userId){
  if(!isAppAdmin||!profileId||!userId)return;
  if(!confirm('Vincular este perfil à conta profissional selecionada?'))return;
