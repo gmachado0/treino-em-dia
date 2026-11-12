@@ -759,8 +759,8 @@ function setProfessionalMessage(message,isError=false){const el=$('#professional
 function safeContactHref(value,type){
  const raw=String(value||'').trim();
  if(!raw)return '';
- if(type==='whatsapp'){const digits=raw.replace(/\\D/g,'');return digits.length>=10?'https://wa.me/'+digits:''}
- if(type==='email')return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(raw)?'mailto:'+raw:'';
+ if(type==='whatsapp'){const digits=raw.replace(/\D/g,'');return digits.length>=10?'https://wa.me/'+digits:''}
+ if(type==='email')return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)?'mailto:'+raw:'';
  return '';
 }
 function professionalStatusLabel(status){return ({pending:'Em análise',approved:'Aprovado',rejected:'Não aprovado',suspended:'Suspenso'})[status]||'Não cadastrado'}
