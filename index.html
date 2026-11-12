@@ -790,7 +790,7 @@ function renderProfessionalDirectory(){
  const stateFilter=String($('#directoryStateFilter')?.value||'').toUpperCase();
  const maxDistance=Number($('#directoryDistanceFilter')?.value||0);
  const filtered=directoryProfessionals.map(p=>{
-  const distance=directoryUserLocation&&Number.isFinite(Number(p.latitude))&&Number.isFinite(Number(p.longitude))
+  const distance=directoryUserLocation&&p.latitude!==null&&p.latitude!==undefined&&p.longitude!==null&&p.longitude!==undefined&&Number.isFinite(Number(p.latitude))&&Number.isFinite(Number(p.longitude))
    ?haversineKm(directoryUserLocation.latitude,directoryUserLocation.longitude,Number(p.latitude),Number(p.longitude)):null;
   return {...p,_distanceKm:distance};
  }).filter(p=>{
