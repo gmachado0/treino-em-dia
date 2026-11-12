@@ -191,6 +191,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
       <div class="field"><label for="directoryStateFilter">Estado</label><select id="directoryStateFilter"><option value="">Todos os estados</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
     </div>
     <div class="formrow" style="margin-top:10px;align-items:end">
+      <div class="field"><label for="directoryPaymentFilter">Forma de pagamento</label><select id="directoryPaymentFilter"><option value="">Todas as formas</option><option value="pix">PIX</option><option value="credit">Crédito</option><option value="debit">Débito</option><option value="cash">Dinheiro</option><option value="bank_transfer">Transferência</option></select></div>
       <div class="field"><label for="directoryDistanceFilter">Distância máxima</label><select id="directoryDistanceFilter"><option value="">Qualquer distância</option><option value="5">Até 5 km</option><option value="10">Até 10 km</option><option value="25">Até 25 km</option><option value="50">Até 50 km</option><option value="100">Até 100 km</option></select></div>
       <button type="button" class="btn small" id="directoryNearbyBtn">Usar minha localização</button>
     </div>
@@ -209,6 +210,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
       <p class="sub" style="font-size:11px;margin-top:5px">A localização pública será aproximada pelo centro da cidade. Geocodificação: © OpenStreetMap contributors.</p>
       <div class="field" style="margin-top:10px"><label>Especialidades (separadas por vírgula)</label><input id="proSpecialties" maxlength="500" placeholder="Emagrecimento, musculação, treinamento funcional"></div>
       <div class="field" style="margin-top:10px"><label>Modalidades de atendimento (separadas por vírgula)</label><input id="proModalities" maxlength="300" placeholder="Presencial, online, avaliação física"></div>
+      <div class="field" style="margin-top:14px"><label>Formas de pagamento aceitas</label><div class="checkgrid">
+        <label class="checkitem"><input type="checkbox" name="proPaymentMethod" value="pix"> PIX</label>
+        <label class="checkitem"><input type="checkbox" name="proPaymentMethod" value="credit"> Cartão de crédito</label>
+        <label class="checkitem"><input type="checkbox" name="proPaymentMethod" value="debit"> Cartão de débito</label>
+        <label class="checkitem"><input type="checkbox" name="proPaymentMethod" value="cash"> Dinheiro</label>
+        <label class="checkitem"><input type="checkbox" name="proPaymentMethod" value="bank_transfer"> Transferência bancária</label>
+      </div><p class="sub" style="font-size:11px;margin-top:5px">O pagamento será combinado e realizado diretamente com você.</p></div>
+      <div class="formrow" style="margin-top:10px"><div class="field"><label>Preço da avaliação (R$)</label><input id="proPriceAssessment" type="number" min="0" max="999999" step="0.01" placeholder="Opcional"></div><div class="field"><label>Preço por sessão (R$)</label><input id="proPriceSession" type="number" min="0" max="999999" step="0.01" placeholder="Opcional"></div></div>
       <div class="field" style="margin-top:10px"><label>Apresentação profissional</label><textarea id="proBio" maxlength="1200" rows="4" placeholder="Conte sobre sua experiência, abordagem e serviços."></textarea></div>
       <button class="btn primary" id="saveProfessional" style="margin-top:14px">Enviar cadastro para análise</button>
       <p id="professionalFormMessage" class="muted" style="font-size:12px;margin-top:9px"></p>
@@ -818,6 +827,8 @@ async function startCloudSession(session){
 
 function splitTags(value){return String(value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,20)}
 function setProfessionalMessage(message,isError=false){const el=$('#professionalFormMessage');if(el){el.textContent=message||'';el.style.color=isError?'var(--danger)':'var(--muted)'}}
+function paymentMethodLabels(methods){const labels={pix:'PIX',credit:'Crédito',debit:'Débito',cash:'Dinheiro',bank_transfer:'Transferência'};return (methods||[]).map(x=>labels[x]||x)}
+function formatBRL(value){return Number(value).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function safeContactHref(value,type){
  const raw=String(value||'').trim();
  if(!raw)return '';
@@ -853,7 +864,11 @@ function openProfessionalProfile(p){
  addSection('Sobre o profissional',p.bio);
  addSection('Especialidades',(p.specialties||[]).join(', '));
  addSection('Modalidades de atendimento',(p.modalities||[]).join(', '));
- addSection('Avaliações','Ainda não há avaliações disponíveis. A contagem e a nota média poderão aparecer aqui quando o sistema de avaliações for ativado.');
+ addSection('Formas de pagamento aceitas',paymentMethodLabels(p.payment_methods).join(', ')||'Não informado');
+ if(p.price_assessment!==null&&p.price_assessment!==undefined)addSection('Preço da avaliação',formatBRL(p.price_assessment));
+ if(p.price_session!==null&&p.price_session!==undefined)addSection('Preço por sessão',formatBRL(p.price_session));
+ const ratingText=Number(p.review_count)>0?'★ '+Number(p.average_rating).toFixed(1).replace('.',',')+' de 5 · '+p.review_count+' avaliações':'Ainda não há avaliações publicadas.';
+ addSection('Avaliações',ratingText);
  const contacts=document.createElement('div');contacts.className='actions';contacts.style.marginTop='18px';
  const wa=safeContactHref(p.whatsapp,'whatsapp'),email=safeContactHref(p.contact_email,'email');
  if(wa){const a=document.createElement('a');a.className='btn primary';a.href=wa;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Conversar pelo WhatsApp';contacts.append(a)}
@@ -868,6 +883,7 @@ function renderProfessionalDirectory(){
  const cityFilter=normalizeDirectoryText($('#directoryCityFilter')?.value);
  const stateFilter=String($('#directoryStateFilter')?.value||'').toUpperCase();
  const maxDistance=Number($('#directoryDistanceFilter')?.value||0);
+ const paymentFilter=$('#directoryPaymentFilter')?.value||'';
  const filtered=directoryProfessionals.map(p=>{
   const distance=directoryUserLocation&&p.latitude!==null&&p.latitude!==undefined&&p.longitude!==null&&p.longitude!==undefined&&Number.isFinite(Number(p.latitude))&&Number.isFinite(Number(p.longitude))
    ?haversineKm(directoryUserLocation.latitude,directoryUserLocation.longitude,Number(p.latitude),Number(p.longitude)):null;
@@ -876,7 +892,8 @@ function renderProfessionalDirectory(){
   const cityOk=!cityFilter||normalizeDirectoryText(p.city).includes(cityFilter);
   const stateOk=!stateFilter||String(p.state||'').toUpperCase()===stateFilter;
   const distanceOk=!maxDistance||p._distanceKm!==null&&p._distanceKm<=maxDistance;
-  return cityOk&&stateOk&&distanceOk;
+  const paymentOk=!paymentFilter||(p.payment_methods||[]).includes(paymentFilter);
+  return cityOk&&stateOk&&distanceOk&&paymentOk;
  });
  if(directoryUserLocation)filtered.sort((a,b)=>(a._distanceKm??Infinity)-(b._distanceKm??Infinity));
  $('#directoryCount').textContent=filtered.length===directoryProfessionals.length?directoryProfessionals.length+' perfis':filtered.length+' de '+directoryProfessionals.length+' perfis';
@@ -891,6 +908,9 @@ function renderProfessionalDirectory(){
   if(p._distanceKm!==null){const distance=document.createElement('p');distance.textContent='Aproximadamente '+(p._distanceKm<10?p._distanceKm.toFixed(1).replace('.',','):Math.round(p._distanceKm))+' km de você';distance.style.color='var(--accent)';info.append(distance)}
   else if(directoryUserLocation){const noDistance=document.createElement('p');noDistance.textContent='Distância indisponível para este perfil';noDistance.className='muted';info.append(noDistance)}
   const cref=document.createElement('p');cref.textContent='CREF: '+p.cref_number+' / '+p.cref_state;info.append(cref);
+  if(Number(p.review_count)>0){const rating=document.createElement('p');rating.textContent='★ '+Number(p.average_rating).toFixed(1).replace('.',',')+' · '+p.review_count+' avaliações';rating.style.color='var(--accent)';info.append(rating)}
+  if((p.payment_methods||[]).length){const payments=document.createElement('p');payments.textContent='Pagamento: '+paymentMethodLabels(p.payment_methods).join(' · ');info.append(payments)}
+  if(p.price_assessment!==null&&p.price_assessment!==undefined){const price=document.createElement('p');price.textContent='Avaliação: '+formatBRL(p.price_assessment);info.append(price)}
   if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;bio.style.marginTop='7px';info.append(bio)}
   if((p.specialties||[]).length){const tags=document.createElement('p');tags.textContent='Especialidades: '+p.specialties.join(', ');info.append(tags)}
   if((p.modalities||[]).length){const modes=document.createElement('p');modes.textContent='Atendimento: '+p.modalities.join(', ');info.append(modes)}
@@ -905,6 +925,7 @@ function renderProfessionalDirectory(){
 }
 $('#directoryCityFilter').addEventListener('input',renderProfessionalDirectory);
 $('#directoryStateFilter').addEventListener('change',renderProfessionalDirectory);
+$('#directoryPaymentFilter').addEventListener('change',renderProfessionalDirectory);
 $('#directoryDistanceFilter').addEventListener('change',renderProfessionalDirectory);
 $('#directoryNearbyBtn').addEventListener('click',()=>{
  const status=$('#directoryLocationStatus'),button=$('#directoryNearbyBtn');
@@ -921,7 +942,7 @@ $('#directoryNearbyBtn').addEventListener('click',()=>{
  },{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
 });
 $('#clearDirectoryFilters').addEventListener('click',()=>{
- $('#directoryCityFilter').value='';$('#directoryStateFilter').value='';$('#directoryDistanceFilter').value='';
+ $('#directoryCityFilter').value='';$('#directoryStateFilter').value='';$('#directoryDistanceFilter').value='';$('#directoryPaymentFilter').value='';
  directoryUserLocation=null;$('#directoryNearbyBtn').textContent='Usar minha localização';
  $('#directoryLocationStatus').textContent='A distância será estimada em linha reta. Sua localização só será usada após sua autorização.';
  renderProfessionalDirectory();
@@ -1045,6 +1066,9 @@ async function loadProfessionalArea(){
  $('#proSpecialties').value=(myProfessional?.specialties||[]).join(', ');
  $('#proModalities').value=(myProfessional?.modalities||[]).join(', ');
  $('#proBio').value=myProfessional?.bio||'';
+ document.querySelectorAll('input[name="proPaymentMethod"]').forEach(input=>{input.checked=(myProfessional?.payment_methods||[]).includes(input.value)});
+ $('#proPriceAssessment').value=myProfessional?.price_assessment??'';
+ $('#proPriceSession').value=myProfessional?.price_session??'';
  $('#saveProfessional').textContent=myProfessional?'Atualizar cadastro':'Enviar cadastro para análise';
  if(myProfessional?.status==='approved')setProfessionalMessage('Seu perfil está publicado no diretório. Alterações nos dados principais exigem nova análise administrativa.');
  else if(myProfessional?.status==='pending')setProfessionalMessage('Seu cadastro está aguardando análise administrativa.');
@@ -1089,7 +1113,10 @@ $('#professionalForm').onsubmit=async e=>{
   city:$('#proCity').value.trim()||null,state:$('#proState').value||null,
   latitude:myProfessional?.latitude??null,longitude:myProfessional?.longitude??null,
   profile_photo_url:myProfessional?.profile_photo_url||null,
-  contact_email:$('#proEmail').value.trim()||null,whatsapp:$('#proWhatsapp').value.trim()||null
+  contact_email:$('#proEmail').value.trim()||null,whatsapp:$('#proWhatsapp').value.trim()||null,
+  payment_methods:Array.from(document.querySelectorAll('input[name="proPaymentMethod"]:checked')).map(input=>input.value),
+  price_assessment:$('#proPriceAssessment').value===''?null:Number($('#proPriceAssessment').value),
+  price_session:$('#proPriceSession').value===''?null:Number($('#proPriceSession').value)
  };
  try{
   const cityChanged=payload.city!== (myProfessional?.city||null)||payload.state!==(myProfessional?.state||null);
