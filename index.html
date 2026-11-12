@@ -963,7 +963,7 @@ async function loadAppointments(){
      const starsText=document.createElement('p');starsText.style.color='var(--accent)';starsText.style.margin='0';starsText.textContent='★'.repeat(Number(review.rating))+'☆'.repeat(5-Number(review.rating))+'  '+review.rating+'/5';reviewPanel.append(starsText);
      const commentText=document.createElement('p');commentText.className='review-comment';commentText.textContent=review.comment;reviewPanel.append(commentText);
      const createdAt=review.created_at?new Date(review.created_at):null,updatedAt=review.updated_at?new Date(review.updated_at):null;
-     if(updatedAt&&createdAt&&updatedAt.getTime()-createdAt.getTime()>1000){const edited=document.createElement('p');edited.className='review-meta';edited.textContent='Editada em '+updatedAt.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});reviewPanel.append(edited)}
+     if(updatedAt&&createdAt&&updatedAt.getTime()-createdAt.getTime()>1000){const edited=document.createElement('p');edited.className='review-meta';edited.textContent='Editada em '+updatedAt.toLocaleDateString('pt-BR')+' às '+updatedAt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});reviewPanel.append(edited)}
      const actionsRow=document.createElement('div');actionsRow.className='review-actions';
      const editButton=document.createElement('button');editButton.type='button';editButton.className='btn small';editButton.textContent='Editar avaliação';editButton.onclick=()=>showEditor(review);
      actionsRow.append(editButton);reviewPanel.append(actionsRow);
@@ -977,7 +977,7 @@ async function loadAppointments(){
      stars.value=String(review?.rating||5);reviewPanel.append(stars);
      const commentLabel=document.createElement('label');commentLabel.textContent='Comentário';commentLabel.className='muted';commentLabel.style.fontSize='12px';reviewPanel.append(commentLabel);
      const comment=document.createElement('textarea');comment.required=true;comment.maxLength=1000;comment.rows=4;comment.placeholder='Compartilhe como foi o atendimento, a comunicação e sua experiência.';comment.value=review?.comment||'';reviewPanel.append(comment);
-     const hint=document.createElement('p');hint.className='review-meta';hint.textContent='Seu comentário ficará visível no perfil do profissional.';reviewPanel.append(hint);
+     const hint=document.createElement('p');hint.className='review-meta';hint.textContent='Seu comentário ficará associado à avaliação deste atendimento.';reviewPanel.append(hint);
      const actionsRow=document.createElement('div');actionsRow.className='review-actions';
      const save=document.createElement('button');save.type='submit';save.className='btn small primary';save.textContent=review?'Salvar alterações':'Publicar avaliação';
      const cancel=document.createElement('button');cancel.type='button';cancel.className='btn small';cancel.textContent='Cancelar';cancel.onclick=()=>review?showReadOnly(review):reviewPanel.remove();
