@@ -184,6 +184,13 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   <p class="eyebrow">Rede de atendimento</p><h1>Profissionais</h1>
   <p class="sub">Encontre profissionais de educação física ou disponibilize seu atendimento.</p>
   <div class="sectionhead"><h2>Profissionais disponíveis</h2><span class="pill" id="directoryCount">Carregando</span></div>
+  <div class="card" style="margin:10px 0;padding:14px">
+    <div class="formrow">
+      <div class="field"><label for="directoryCityFilter">Buscar por cidade</label><input id="directoryCityFilter" type="search" maxlength="100" placeholder="Ex.: Porto Alegre"></div>
+      <div class="field"><label for="directoryStateFilter">Estado</label><select id="directoryStateFilter"><option value="">Todos os estados</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
+    </div>
+    <button type="button" class="btn small" id="clearDirectoryFilters" style="margin-top:10px">Limpar filtros</button>
+  </div>
   <div id="professionalDirectory" class="workout-list"><div class="empty">Carregando profissionais...</div></div>
   <div class="card" style="margin-top:18px">
     <div class="sectionhead" style="margin:0 0 8px"><h2>Cadastro profissional</h2><span class="pill" id="professionalStatus">Não cadastrado</span></div>
@@ -764,11 +771,20 @@ function safeContactHref(value,type){
  return '';
 }
 function professionalStatusLabel(status){return ({pending:'Em análise',approved:'Aprovado',rejected:'Não aprovado',suspended:'Suspenso'})[status]||'Não cadastrado'}
+function normalizeDirectoryText(value){return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim().toLocaleLowerCase('pt-BR')}
 function renderProfessionalDirectory(){
  const root=$('#professionalDirectory');root.replaceChildren();
- $('#directoryCount').textContent=directoryProfessionals.length+' perfis';
+ const cityFilter=normalizeDirectoryText($('#directoryCityFilter')?.value);
+ const stateFilter=String($('#directoryStateFilter')?.value||'').toUpperCase();
+ const filtered=directoryProfessionals.filter(p=>{
+  const cityOk=!cityFilter||normalizeDirectoryText(p.city).includes(cityFilter);
+  const stateOk=!stateFilter||String(p.state||'').toUpperCase()===stateFilter;
+  return cityOk&&stateOk;
+ });
+ $('#directoryCount').textContent=filtered.length===directoryProfessionals.length?directoryProfessionals.length+' perfis':filtered.length+' de '+directoryProfessionals.length+' perfis';
  if(!directoryProfessionals.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Ainda não há profissionais aprovados no diretório.';root.append(empty);return}
- directoryProfessionals.forEach(p=>{
+ if(!filtered.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum profissional encontrado com esses filtros. Tente outra cidade ou estado.';root.append(empty);return}
+ filtered.forEach(p=>{
   const card=document.createElement('div');card.className='exercise';card.style.marginBottom='9px';
   const info=document.createElement('div');info.style.flex='1';
   if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Foto de '+p.full_name;photo.loading='lazy';photo.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:50%;float:right;margin:0 0 8px 12px;border:1px solid var(--line)';info.append(photo)}
@@ -786,6 +802,10 @@ function renderProfessionalDirectory(){
   info.append(actions);card.append(info);root.append(card);
  });
 }
+$('#directoryCityFilter').addEventListener('input',renderProfessionalDirectory);
+$('#directoryStateFilter').addEventListener('change',renderProfessionalDirectory);
+$('#clearDirectoryFilters').addEventListener('click',()=>{$('#directoryCityFilter').value='';$('#directoryStateFilter').value='';renderProfessionalDirectory()});
+
 function renderProfessionalAdminList(rows){
  const root=$('#professionalAdminList');root.replaceChildren();
  if(!rows.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum cadastro profissional encontrado.';root.append(empty);return}
