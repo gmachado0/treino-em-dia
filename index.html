@@ -1008,6 +1008,7 @@ async function editProfessionalAdmin(profile){
  const bio=ask('Apresentação profissional',profile.bio);if(bio===null)return;
  const locationChanged=city!==(profile.city||'')||state!==(profile.state||'');
  const patch={full_name,cref_number,cref_state:cref_state.toUpperCase(),contact_email:contact_email||null,whatsapp:whatsapp||null,city:city||null,state:state?state.toUpperCase():null,specialties:splitTags(specialties),modalities:splitTags(modalities),bio:bio||null};
+ if(profile.status==='approved'){patch.status='pending';patch.reviewed_at=null;patch.reviewed_by=null;patch.rejection_reason=null}
  if(locationChanged){patch.latitude=null;patch.longitude=null}
  const {error}=await cloud.from('professionals').update(patch).eq('id',profile.id);
  if(error){toast('Não foi possível editar o perfil: '+error.message);return}
