@@ -1303,24 +1303,75 @@ $('#professionalForm').onsubmit=async e=>{
 };
 async function editProfessionalAdmin(profile){
  if(!isAppAdmin||!profile)return;
- const ask=(label,current)=>{const value=prompt(label,current??'');return value===null?null:value.trim()};
- const full_name=ask('Nome completo',profile.full_name);if(full_name===null)return;
- const cref_number=ask('Número do CREF',profile.cref_number);if(cref_number===null)return;
- const cref_state=ask('Estado do CREF (UF)',profile.cref_state);if(cref_state===null)return;
- const contact_email=ask('E-mail de contato',profile.contact_email);if(contact_email===null)return;
- const whatsapp=ask('WhatsApp com DDD',profile.whatsapp);if(whatsapp===null)return;
- const city=ask('Cidade',profile.city);if(city===null)return;
- const state=ask('Estado da cidade (UF)',profile.state);if(state===null)return;
- const specialties=ask('Especialidades separadas por vírgula',(profile.specialties||[]).join(', '));if(specialties===null)return;
- const modalities=ask('Modalidades separadas por vírgula',(profile.modalities||[]).join(', '));if(modalities===null)return;
- const bio=ask('Apresentação profissional',profile.bio);if(bio===null)return;
- const locationChanged=city!==(profile.city||'')||state!==(profile.state||'');
- const patch={full_name,cref_number,cref_state:cref_state.toUpperCase(),contact_email:contact_email||null,whatsapp:whatsapp||null,city:city||null,state:state?state.toUpperCase():null,specialties:splitTags(specialties),modalities:splitTags(modalities),bio:bio||null};
- if(profile.status==='approved'){patch.status='pending';patch.reviewed_at=null;patch.reviewed_by=null;patch.rejection_reason=null}
- if(locationChanged){patch.latitude=null;patch.longitude=null}
- const {error}=await cloud.from('professionals').update(patch).eq('id',profile.id);
- if(error){toast('Não foi possível editar o perfil: '+error.message);return}
- await loadProfessionalArea();toast('Dados do perfil atualizados. Se estava aprovado, o perfil voltará para análise.');
+ const overlay=document.createElement('div');
+ overlay.id='editProfessionalAdminOverlay';
+ overlay.style.cssText='position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:14px;overflow-y:auto';
+ const panel=document.createElement('div');
+ panel.style.cssText='background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:18px;width:min(100%,620px);max-height:92vh;overflow-y:auto;padding:20px';
+ const heading=document.createElement('div');heading.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px';
+ const title=document.createElement('h2');title.textContent='Editar pré-cadastro profissional';title.style.margin='0';heading.append(title);
+ const close=document.createElement('button');close.type='button';close.className='btn small';close.textContent='Fechar';close.onclick=()=>overlay.remove();heading.append(close);panel.append(heading);
+ const form=document.createElement('form');form.className='stack';form.style.gap='12px';
+ const field=(labelText,key,value,type='text',required=false)=>{
+  const wrap=document.createElement('label');wrap.className='field';wrap.style.display='block';
+  const label=document.createElement('span');label.textContent=labelText;label.style.display='block';label.style.marginBottom='5px';wrap.append(label);
+  const input=document.createElement(type==='textarea'?'textarea':'input');if(type!=='textarea')input.type=type;
+  input.className='input';input.name=key;input.value=value??'';input.style.width='100%';if(required)input.required=true;
+  if(type==='textarea'){input.rows=4;input.style.resize='vertical'}
+  wrap.append(input);form.append(wrap);return input;
+ };
+ field('Nome completo','full_name',profile.full_name,'text',true);
+ const crefRow=document.createElement('div');crefRow.className='formrow';
+ const cref=field('Número do CREF','cref_number',profile.cref_number,'text',true);
+ const crefState=field('UF do CREF','cref_state',profile.cref_state,'text',true);crefState.maxLength=2;crefRow.append(cref.parentElement,crefState.parentElement);form.append(crefRow);
+ field('E-mail de contato','contact_email',profile.contact_email,'email');
+ field('WhatsApp com DDD','whatsapp',profile.whatsapp);
+ const locationRow=document.createElement('div');locationRow.className='formrow';
+ const city=field('Cidade','city',profile.city);const state=field('state','state',profile.state);state.maxLength=2;locationRow.append(city.parentElement,state.parentElement);form.append(locationRow);
+ field('Especialidades (separadas por vírgula)','specialties',(profile.specialties||[]).join(', '));
+ field('Modalidades (separadas por vírgula)','modalities',(profile.modalities||[]).join(', '));
+ field('Apresentação profissional','bio',profile.bio,'textarea');
+ const payments=document.createElement('fieldset');payments.style.cssText='border:1px solid var(--line);border-radius:12px;padding:12px;margin:0';
+ const legend=document.createElement('legend');legend.textContent='Formas de pagamento aceitas';payments.append(legend);
+ const paymentOptions=[['pix','PIX'],['credit','Cartão de crédito'],['debit','Cartão de débito'],['cash','Dinheiro'],['bank_transfer','Transferência bancária']];
+ const selected=new Set(profile.payment_methods||[]);
+ paymentOptions.forEach(([value,labelText])=>{const label=document.createElement('label');label.style.cssText='display:inline-flex;align-items:center;gap:7px;margin:5px 12px 5px 0';const cb=document.createElement('input');cb.type='checkbox';cb.name='payment_methods';cb.value=value;cb.checked=selected.has(value);label.append(cb,document.createTextNode(labelText));payments.append(label)});
+ form.append(payments);
+ const priceRow=document.createElement('div');priceRow.className='formrow';
+ const assessment=field('Preço da avaliação (R$)','price_assessment',profile.price_assessment??'','number');assessment.min='0';assessment.step='0.01';
+ const session=field('Preço por sessão (R$)','price_session',profile.price_session??'','number');session.min='0';session.step='0.01';
+ priceRow.append(assessment.parentElement,session.parentElement);form.append(priceRow);
+ const note=document.createElement('p');note.className='muted';note.style.cssText='font-size:12px;margin:0';note.textContent='Se o perfil estiver aprovado, alterações nos dados farão o cadastro voltar para análise administrativa.';form.append(note);
+ const actions=document.createElement('div');actions.className='actions';actions.style.cssText='display:flex;justify-content:flex-end;gap:8px;margin-top:6px';
+ const cancel=document.createElement('button');cancel.type='button';cancel.className='btn';cancel.textContent='Cancelar';cancel.onclick=()=>overlay.remove();
+ const save=document.createElement('button');save.type='submit';save.className='btn primary';save.textContent='Salvar alterações';actions.append(cancel,save);form.append(actions);
+ form.onsubmit=async e=>{
+  e.preventDefault();if(!isAppAdmin)return;
+  save.disabled=true;save.textContent='Salvando...';
+  const data=new FormData(form);
+  const nextCity=String(data.get('city')||'').trim(),nextState=String(data.get('state')||'').trim().toUpperCase();
+  const locationChanged=nextCity!==(profile.city||'')||nextState!==(profile.state||'');
+  const parsePrice=name=>{const raw=String(data.get(name)||'').trim();if(!raw)return null;const n=Number(raw);return Number.isFinite(n)&&n>=0?n:NaN};
+  const priceAssessment=parsePrice('price_assessment'),priceSession=parsePrice('price_session');
+  if(Number.isNaN(priceAssessment)||Number.isNaN(priceSession)){toast('Informe preços válidos, iguais ou maiores que zero.');save.disabled=false;save.textContent='Salvar alterações';return}
+  const patch={
+   full_name:String(data.get('full_name')||'').trim(),cref_number:String(data.get('cref_number')||'').trim(),
+   cref_state:String(data.get('cref_state')||'').trim().toUpperCase(),contact_email:String(data.get('contact_email')||'').trim()||null,
+   whatsapp:String(data.get('whatsapp')||'').trim()||null,city:nextCity||null,state:nextState||null,
+   specialties:splitTags(data.get('specialties')||''),modalities:splitTags(data.get('modalities')||''),
+   bio:String(data.get('bio')||'').trim()||null,payment_methods:data.getAll('payment_methods'),
+   price_assessment:priceAssessment,price_session:priceSession
+  };
+  if(profile.status==='approved'){patch.status='pending';patch.reviewed_at=null;patch.reviewed_by=null;patch.rejection_reason=null}
+  if(locationChanged){patch.latitude=null;patch.longitude=null}
+  try{
+   const {error}=await cloud.from('professionals').update(patch).eq('id',profile.id);
+   if(error)throw error;
+   overlay.remove();await loadProfessionalArea();toast('Dados do perfil atualizados. Se estava aprovado, o perfil voltou para análise.');
+  }catch(err){toast('Não foi possível editar o perfil: '+err.message);save.disabled=false;save.textContent='Salvar alterações'}
+ };
+ overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+ panel.append(form);overlay.append(panel);document.body.append(overlay);
 }
 async function deleteProfessionalAdmin(profile){
  if(!isAppAdmin||!profile)return;
