@@ -177,6 +177,33 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   </div>
   <div class="card" style="margin-top:12px"><h2>Sobre os dados</h2><p class="sub" style="font-size:13px;margin-top:7px">Seus dados são vinculados à sua conta e sincronizados pelo Supabase. Use o backup JSON como cópia adicional. Não compartilhe sua senha.</p></div>
   <div class="card" style="margin-top:12px"><h2>Recomeçar do zero</h2><p class="sub" style="font-size:12px;margin:5px 0 12px">Apaga seus dados de treino, medidas, histórico, questionário, perfil e fichas salvas na nuvem e neste dispositivo. Sua conta e seu e-mail de acesso serão mantidos. Depois, você poderá preencher o questionário novamente.</p><button class="btn" id="resetData" style="border-color:#793f42;color:#ff9999">Apagar meus dados e recomeçar</button><p id="resetMessage" class="muted" style="font-size:12px;margin-top:10px"></p></div>
+
+<section id="professionals" class="view">
+  <p class="eyebrow">Rede de atendimento</p><h1>Profissionais</h1>
+  <p class="sub">Encontre profissionais de educação física ou disponibilize seu atendimento.</p>
+  <div class="sectionhead"><h2>Profissionais disponíveis</h2><span class="pill" id="directoryCount">Carregando</span></div>
+  <div id="professionalDirectory" class="workout-list"><div class="empty">Carregando profissionais...</div></div>
+  <div class="card" style="margin-top:18px">
+    <div class="sectionhead" style="margin:0 0 8px"><h2>Cadastro profissional</h2><span class="pill" id="professionalStatus">Não cadastrado</span></div>
+    <p class="sub" style="font-size:12px;margin-bottom:14px">Profissionais de educação física podem cadastrar seu perfil. A publicação no diretório depende de aprovação administrativa e análise das informações do CREF.</p>
+    <form id="professionalForm">
+      <div class="formrow"><div class="field"><label>Nome profissional</label><input id="proName" maxlength="120" required placeholder="Nome completo"></div><div class="field"><label>CREF</label><input id="proCref" maxlength="40" required placeholder="Número do registro"></div></div>
+      <div class="formrow" style="margin-top:10px"><div class="field"><label>Estado do CREF</label><select id="proCrefState" required><option value="">Selecione</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div><div class="field"><label>E-mail para contato</label><input id="proEmail" type="email" maxlength="180" placeholder="contato@exemplo.com"></div></div>
+      <div class="formrow" style="margin-top:10px"><div class="field"><label>WhatsApp (com DDD)</label><input id="proWhatsapp" maxlength="25" placeholder="5551999999999"></div><div class="field"><label>Foto de perfil (URL opcional)</label><input id="proPhoto" type="url" maxlength="500" placeholder="https://..."></div></div>
+      <div class="formrow" style="margin-top:10px"><div class="field"><label>Cidade</label><input id="proCity" maxlength="100" placeholder="Sua cidade"></div><div class="field"><label>Estado</label><select id="proState"><option value="">Selecione</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div></div>
+      <div class="field" style="margin-top:10px"><label>Especialidades (separadas por vírgula)</label><input id="proSpecialties" maxlength="500" placeholder="Emagrecimento, musculação, treinamento funcional"></div>
+      <div class="field" style="margin-top:10px"><label>Modalidades de atendimento (separadas por vírgula)</label><input id="proModalities" maxlength="300" placeholder="Presencial, online, avaliação física"></div>
+      <div class="field" style="margin-top:10px"><label>Apresentação profissional</label><textarea id="proBio" maxlength="1200" rows="4" placeholder="Conte sobre sua experiência, abordagem e serviços."></textarea></div>
+      <button class="btn primary" id="saveProfessional" style="margin-top:14px">Enviar cadastro para análise</button>
+      <p id="professionalFormMessage" class="muted" style="font-size:12px;margin-top:9px"></p>
+    </form>
+  </div>
+  <div class="card" id="professionalAdminPanel" style="display:none;margin-top:18px">
+    <div class="sectionhead" style="margin:0 0 8px"><h2>Administração de profissionais</h2><span class="pill">Administrador</span></div>
+    <p class="sub" style="font-size:12px;margin-bottom:12px">Analise os dados e o registro profissional antes de publicar um perfil. A aprovação é manual.</p>
+    <div id="professionalAdminList" class="workout-list"></div>
+  </div>
+</section>
 </section>
 </div>
 <nav class="tabs">
@@ -184,6 +211,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
 <button data-tab="training"><span>▤</span>Treinos</button>
 <button data-tab="cardio"><span>◉</span>Cardio</button>
 <button data-tab="progress"><span>↗</span>Evolução</button>
+<button data-tab="professionals"><span>♙</span>Profissionais</button>
 </nav>
 <div id="toast" style="position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:#e7f6d3;color:#18210e;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:650;display:none;z-index:10;box-shadow:0 8px 30px #0008"></div>
 <script>
@@ -272,7 +300,7 @@ function renderTraining(){
  $('#finishWorkout').style.display=entry?'inline-block':'none';
  renderHistory();
 }
-function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();window.scrollTo(0,0)}
+function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();if(tab==='professionals')loadProfessionalArea();window.scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 $('#startWorkout').onclick=()=>{const current=activeWorkout(selectedDay);if(current)return;startWorkoutEntry(selectedDay,selectedWorkoutDay)};
 $('#finishWorkout').onclick=async()=>{const entry=activeWorkout(selectedDay);if(!entry||!confirm('Marcar esta sessão como concluída?'))return;entry.status='completed';const entryWeek=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);data.completed[entryWeek+'_'+(entry.scheduledDay??entry.day)]=entry.date;editingSessionId=null;delete data.editingSessionId;save();await syncCloudData();await loadCloudData();renderTraining();renderHistory();renderDashboard();toast('Sessão concluída e salva no histórico')};
@@ -450,6 +478,7 @@ const SUPABASE_KEY = "sb_publishable_4YHXb4Nw7bwDfbhz7lg4vg_h9nIGuXz";
 const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 window.cloudReady = false;
 let currentUser = null, cloudDayRows = [], allCloudDayRows = [], allCloudItems = [], syncTimer = null, syncQueue = Promise.resolve();
+let isAppAdmin=false, myProfessional=null, directoryProfessionals=[];
 let authMode = 'login';
 const authGate = $('#authGate');
 function authMessage(msg){$('#authMessage').textContent=msg||''}
@@ -723,6 +752,122 @@ async function startCloudSession(session){
     localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard();renderTraining();renderHistory();renderCardio();renderProgress();fillSettings();
   }catch(err){setAppVisible(false);authMessage('Erro ao carregar seus dados: '+(err.message||'tente novamente'))}
 }
+
+function splitTags(value){return String(value||'').split(',').map(x=>x.trim()).filter(Boolean).slice(0,20)}
+function setProfessionalMessage(message,isError=false){const el=$('#professionalFormMessage');if(el){el.textContent=message||'';el.style.color=isError?'var(--danger)':'var(--muted)'}}
+function safeContactHref(value,type){
+ const raw=String(value||'').trim();
+ if(!raw)return '';
+ if(type==='whatsapp'){const digits=raw.replace(/\\D/g,'');return digits.length>=10?'https://wa.me/'+digits:''}
+ if(type==='email')return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(raw)?'mailto:'+raw:'';
+ return '';
+}
+function professionalStatusLabel(status){return ({pending:'Em análise',approved:'Aprovado',rejected:'Não aprovado',suspended:'Suspenso'})[status]||'Não cadastrado'}
+function renderProfessionalDirectory(){
+ const root=$('#professionalDirectory');root.replaceChildren();
+ $('#directoryCount').textContent=directoryProfessionals.length+' perfis';
+ if(!directoryProfessionals.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Ainda não há profissionais aprovados no diretório.';root.append(empty);return}
+ directoryProfessionals.forEach(p=>{
+  const card=document.createElement('div');card.className='exercise';card.style.marginBottom='9px';
+  const info=document.createElement('div');info.style.flex='1';
+  const name=document.createElement('h3');name.textContent=p.full_name;info.append(name);
+  const location=document.createElement('p');location.textContent=[p.city,p.state].filter(Boolean).join(' / ')||'Localização não informada';info.append(location);
+  const cref=document.createElement('p');cref.textContent='CREF: '+p.cref_number+' / '+p.cref_state;info.append(cref);
+  if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;bio.style.marginTop='7px';info.append(bio)}
+  if((p.specialties||[]).length){const tags=document.createElement('p');tags.textContent='Especialidades: '+p.specialties.join(', ');info.append(tags)}
+  if((p.modalities||[]).length){const modes=document.createElement('p');modes.textContent='Atendimento: '+p.modalities.join(', ');info.append(modes)}
+  const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='10px';
+  const wa=safeContactHref(p.whatsapp,'whatsapp'),email=safeContactHref(p.contact_email,'email');
+  if(wa){const a=document.createElement('a');a.className='btn small';a.href=wa;a.target='_blank';a.rel='noopener noreferrer';a.textContent='WhatsApp';actions.append(a)}
+  if(email){const a=document.createElement('a');a.className='btn small';a.href=email;a.textContent='E-mail';actions.append(a)}
+  if(!wa&&!email){const muted=document.createElement('span');muted.className='muted';muted.textContent='Contato não informado';actions.append(muted)}
+  info.append(actions);card.append(info);root.append(card);
+ });
+}
+function renderProfessionalAdminList(rows){
+ const root=$('#professionalAdminList');root.replaceChildren();
+ if(!rows.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum cadastro profissional encontrado.';root.append(empty);return}
+ rows.forEach(p=>{
+  const card=document.createElement('div');card.className='exercise';card.style.marginBottom='9px';
+  const info=document.createElement('div');info.style.flex='1';
+  const name=document.createElement('h3');name.textContent=p.full_name+' · '+professionalStatusLabel(p.status);info.append(name);
+  const details=document.createElement('p');details.textContent='CREF: '+p.cref_number+'/'+p.cref_state+' · '+[p.city,p.state].filter(Boolean).join('/');info.append(details);
+  const email=document.createElement('p');email.textContent=p.contact_email||'Sem e-mail de contato';info.append(email);
+  if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;info.append(bio)}
+  const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='9px';
+  [['approved','Aprovar'],['rejected','Rejeitar'],['suspended','Suspender'],['pending','Voltar para análise']].forEach(([status,label])=>{
+   const b=document.createElement('button');b.className='btn small';b.textContent=label;b.disabled=p.status===status;b.onclick=()=>reviewProfessional(p.id,status);actions.append(b);
+  });
+  info.append(actions);card.append(info);root.append(card);
+ });
+}
+async function loadProfessionalArea(){
+ if(!currentUser)return;
+ setProfessionalMessage('');
+ const [adminRes,mineRes,directoryRes]=await Promise.all([
+  cloud.from('app_admins').select('user_id').eq('user_id',currentUser.id).maybeSingle(),
+  cloud.from('professionals').select('*').eq('user_id',currentUser.id).maybeSingle(),
+  cloud.from('professional_directory').select('*').order('full_name')
+ ]);
+ for(const r of [adminRes,mineRes,directoryRes])if(r.error)throw r.error;
+ isAppAdmin=!!adminRes.data;myProfessional=mineRes.data||null;directoryProfessionals=directoryRes.data||[];
+ renderProfessionalDirectory();
+ $('#professionalAdminPanel').style.display=isAppAdmin?'block':'none';
+ $('#professionalStatus').textContent=professionalStatusLabel(myProfessional?.status);
+ $('#proName').value=myProfessional?.full_name||data.profile.name||'';
+ $('#proCref').value=myProfessional?.cref_number||'';
+ $('#proCrefState').value=myProfessional?.cref_state||'';
+ $('#proEmail').value=myProfessional?.contact_email||currentUser.email||'';
+ $('#proWhatsapp').value=myProfessional?.whatsapp||'';
+ $('#proPhoto').value=myProfessional?.profile_photo_url||'';
+ $('#proCity').value=myProfessional?.city||'';
+ $('#proState').value=myProfessional?.state||'';
+ $('#proSpecialties').value=(myProfessional?.specialties||[]).join(', ');
+ $('#proModalities').value=(myProfessional?.modalities||[]).join(', ');
+ $('#proBio').value=myProfessional?.bio||'';
+ $('#saveProfessional').textContent=myProfessional?'Atualizar cadastro':'Enviar cadastro para análise';
+ if(myProfessional?.status==='approved')setProfessionalMessage('Seu perfil está publicado no diretório. Alterações nos dados de perfil não removem automaticamente a aprovação; mantenha o CREF e as informações atualizados.');
+ else if(myProfessional?.status==='pending')setProfessionalMessage('Seu cadastro está aguardando análise administrativa.');
+ else if(myProfessional?.status==='rejected')setProfessionalMessage('Seu cadastro não foi aprovado. Você pode atualizar as informações e reenviar para análise.');
+ else if(myProfessional?.status==='suspended')setProfessionalMessage('Seu perfil está suspenso e não aparece no diretório.');
+ if(isAppAdmin){
+  const adminRows=await cloud.from('professionals').select('*').order('created_at',{ascending:false});
+  if(adminRows.error)throw adminRows.error;
+  renderProfessionalAdminList(adminRows.data||[]);
+ }
+}
+$('#professionalForm').onsubmit=async e=>{
+ e.preventDefault();if(!currentUser||!window.cloudReady){setProfessionalMessage('Entre na sua conta para continuar.',true);return}
+ const btn=$('#saveProfessional');btn.disabled=true;setProfessionalMessage('Salvando cadastro...');
+ const payload={
+  user_id:currentUser.id,full_name:$('#proName').value.trim(),cref_number:$('#proCref').value.trim(),
+  cref_state:$('#proCrefState').value,bio:$('#proBio').value.trim()||null,
+  specialties:splitTags($('#proSpecialties').value),modalities:splitTags($('#proModalities').value),
+  city:$('#proCity').value.trim()||null,state:$('#proState').value||null,
+  profile_photo_url:$('#proPhoto').value.trim()||null,
+  contact_email:$('#proEmail').value.trim()||null,whatsapp:$('#proWhatsapp').value.trim()||null
+ };
+ try{
+  if(myProfessional){
+   if(myProfessional.status==='rejected'||myProfessional.status==='suspended')payload.status='pending';
+   const {error}=await cloud.from('professionals').update(payload).eq('id',myProfessional.id).eq('user_id',currentUser.id);if(error)throw error;
+  }else{
+   const {error}=await cloud.from('professionals').insert(payload);if(error)throw error;
+  }
+  await loadProfessionalArea();toast('Cadastro profissional salvo.');
+ }catch(err){setProfessionalMessage(err.message||'Não foi possível salvar o cadastro.',true)}
+ finally{btn.disabled=false}
+};
+async function reviewProfessional(id,status){
+ if(!isAppAdmin)return;
+ let reason=null;
+ if(status==='rejected'){reason=prompt('Informe o motivo da rejeição (opcional):');if(reason===null)return}
+ const patch={status,reviewed_at:new Date().toISOString(),reviewed_by:currentUser.id,rejection_reason:reason};
+ const {error}=await cloud.from('professionals').update(patch).eq('id',id);
+ if(error){toast('Não foi possível atualizar o cadastro: '+error.message);return}
+ await loadProfessionalArea();toast('Status do profissional atualizado.');
+}
+
 cloud.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>startCloudSession(session),0)});
 (async()=>{const {data:{session}}=await cloud.auth.getSession();await startCloudSession(session)})();
 
