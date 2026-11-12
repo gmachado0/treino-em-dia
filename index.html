@@ -49,6 +49,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <div class="auth-switch"><button class="btn primary" id="showLogin">Entrar</button><button class="btn" id="showSignup">Tenho um convite</button></div>
     <div id="inviteFields" style="display:none">
       <div class="field"><label>Código de convite</label><input type="text" id="inviteCode" autocomplete="off" maxlength="80" placeholder="Cole seu código de convite"></div>
+      <div class="field" style="margin-top:12px"><label for="signupAccountType">Tipo de conta</label><select id="signupAccountType"><option value="regular">Usuário regular — quero montar meus treinos</option><option value="professional">Profissional/personal — quero divulgar meu atendimento</option></select></div>
       <label class="checkitem" style="margin-top:12px"><input type="checkbox" id="adultConfirm"> Confirmo que tenho 18 anos ou mais.</label>
       <p class="sub" style="font-size:12px;margin-top:8px">O cadastro é restrito a pessoas com convite e maiores de 18 anos.</p>
     </div>
@@ -197,7 +198,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <button type="button" class="btn small" id="clearDirectoryFilters" style="margin-top:10px">Limpar filtros</button>
   </div>
   <div id="professionalDirectory" class="workout-list"><div class="empty">Carregando profissionais...</div></div>
-  <div class="card" style="margin-top:18px">
+  <div class="card" id="professionalFormCard" style="margin-top:18px">
     <div class="sectionhead" style="margin:0 0 8px"><h2>Cadastro profissional</h2><span class="pill" id="professionalStatus">Não cadastrado</span></div>
     <p class="sub" style="font-size:12px;margin-bottom:14px">Profissionais de educação física podem cadastrar seu perfil. A publicação no diretório depende de aprovação administrativa e análise das informações do CREF.</p>
     <form id="professionalForm">
@@ -215,7 +216,14 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   </div>
   <div class="card" id="professionalAdminPanel" style="display:none;margin-top:18px">
     <div class="sectionhead" style="margin:0 0 8px"><h2>Administração de profissionais</h2><span class="pill">Administrador</span></div>
-    <p class="sub" style="font-size:12px;margin-bottom:12px">Analise os dados e o registro profissional antes de publicar um perfil. A aprovação é manual.</p>
+    <p class="sub" style="font-size:12px;margin-bottom:12px">Cadastre perfis sem conta vinculada, revise os registros e associe um perfil a uma conta profissional quando necessário. A publicação depende de aprovação.</p>
+    <form id="adminCreateProfessionalForm" class="card" style="margin:12px 0;padding:14px">
+      <h3 style="margin:0 0 10px">Novo perfil profissional</h3>
+      <div class="formrow"><div class="field"><label>Nome completo</label><input id="adminProName" required maxlength="120" placeholder="Nome do profissional"></div><div class="field"><label>Número do CREF</label><input id="adminProCref" required maxlength="40" placeholder="Número"></div></div>
+      <div class="formrow" style="margin-top:10px"><div class="field"><label>Estado do CREF</label><select id="adminProCrefState" required><option value="">Selecione</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div><div class="field"><label>E-mail de contato (opcional)</label><input id="adminProEmail" type="email" maxlength="180" placeholder="contato@exemplo.com"></div></div>
+      <button class="btn primary" style="margin-top:12px">Cadastrar perfil para análise</button>
+      <p id="adminCreateMessage" class="muted" style="font-size:12px;margin-top:8px"></p>
+    </form>
     <div id="professionalAdminList" class="workout-list"></div>
   </div>
 </section>
@@ -493,14 +501,14 @@ const cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 window.cloudReady = false;
 let currentUser = null, cloudDayRows = [], allCloudDayRows = [], allCloudItems = [], syncTimer = null, syncQueue = Promise.resolve();
 let isAppAdmin=false, myProfessional=null, directoryProfessionals=[];
-let directoryUserLocation=null;
+let directoryUserLocation=null, accountType='regular';
 let authMode = 'login';
 const authGate = $('#authGate');
 function authMessage(msg){$('#authMessage').textContent=msg||''}
 function showAuth(mode){
   authMode=mode;
   $('#authTitle').textContent=mode==='signup'?'Criar sua conta':'Entre na sua conta';
-  $('#authIntro').textContent=mode==='signup'?'Crie uma conta para salvar seus treinos na nuvem.':'Acesse seus treinos e acompanhe sua evolução em qualquer dispositivo.';
+  $('#authIntro').textContent=mode==='signup'?'Escolha como deseja usar o Treino em Dia.':'Acesse seus treinos e acompanhe sua evolução em qualquer dispositivo.';
   $('#authSubmit').textContent=mode==='signup'?'Criar conta':'Entrar';
   $('#authPassword').autocomplete=mode==='signup'?'new-password':'current-password';
   $('#showLogin').classList.toggle('primary',mode==='login');$('#showSignup').classList.toggle('primary',mode==='signup');
@@ -519,7 +527,8 @@ $('#authForm').onsubmit=async e=>{
       const inviteCode=$('#inviteCode').value.trim().toUpperCase();
       if(!inviteCode)throw new Error('Informe um código de convite.');
       if(!$('#adultConfirm').checked)throw new Error('Confirme que você tem 18 anos ou mais.');
-      const {data:res,error}=await cloud.auth.signUp({email,password,options:{emailRedirectTo:"https://gmachado0.github.io/treino-em-dia/",data:{invite_code:inviteCode,is_adult:true}}});
+      const selectedAccountType=$('#signupAccountType').value==='professional'?'professional':'regular';
+      const {data:res,error}=await cloud.auth.signUp({email,password,options:{emailRedirectTo:"https://gmachado0.github.io/treino-em-dia/",data:{invite_code:inviteCode,is_adult:true,account_type:selectedAccountType}}});
       if(error)throw error;
       if(!res.session){authMessage('Conta criada. Confirme seu e-mail pelo link enviado para entrar.');}
       else authMessage('Conta criada. Preparando seu perfil...');
@@ -557,6 +566,12 @@ function setAppVisible(visible){
   $('#cloudAccount').style.display=visible?'flex':'none';
 }
 function showOnboarding(show){$('#onboarding').style.display=show?'block':'none';}
+function applyAccountNavigation(){
+ const professionalOnly=accountType==='professional';
+ document.querySelectorAll('.tabs button').forEach(button=>{button.style.display=professionalOnly?(button.dataset.tab==='professionals'?'':'none'):'';});
+ $('#settingsBtn').style.display=professionalOnly?'none':'';
+ if(professionalOnly){document.querySelectorAll('.app .view').forEach(view=>view.classList.toggle('active',view.id==='professionals'));document.querySelectorAll('.tabs button').forEach(button=>button.classList.toggle('active',button.dataset.tab==='professionals'));}
+}
 function readQuestionnaire(){
   return {
     objective:$('#qObjective').value,
@@ -753,9 +768,17 @@ async function syncCloudData(){
 }
 function scheduleCloudSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncCloudData(),900)}
 async function startCloudSession(session){
-  if(!session){currentUser=null;window.cloudReady=false;setAppVisible(false);showOnboarding(false);return}
+  if(!session){currentUser=null;accountType='regular';isAppAdmin=false;window.cloudReady=false;setAppVisible(false);showOnboarding(false);return}
   currentUser=session.user;$('#accountEmail').textContent=currentUser.email||'Conta';
   try{
+    const {data:account,error:accountError}=await cloud.from('account_types').select('account_type').eq('user_id',currentUser.id).maybeSingle();
+    if(accountError)throw accountError;
+    accountType=account?.account_type||'regular';
+    if(accountType==='professional'){
+      window.cloudReady=true;setAppVisible(true);showOnboarding(false);applyAccountNavigation();
+      await loadProfessionalArea();$('#professionalFormCard').style.display='block';$('#professionalAdminPanel').style.display='none';
+      return;
+    }
     await loadCloudData();
     const {data:q,error}=await cloud.from('questionnaires').select('user_id').eq('user_id',currentUser.id).maybeSingle();if(error)throw error;
     if(!q){setAppVisible(false);showOnboarding(true);return}
@@ -763,7 +786,7 @@ async function startCloudSession(session){
     if(hasSafetyLimitations(questionnaire)){setAppVisible(false);showOnboarding(true);$('#onboardingMessage').textContent='Sua ficha automática está bloqueada porque há uma limitação física registrada no questionário. Mantenha essa informação e procure orientação profissional para definir exercícios seguros. O aplicativo não consegue avaliar lesões, dores ou contraindicações.';return}
     if(!data.program.length){await createCloudPlan(questionnaire)}
     window.cloudReady=true;
-    setAppVisible(true);showOnboarding(false);
+    setAppVisible(true);showOnboarding(false);applyAccountNavigation();
     localStorage.setItem('treinoEmDia',JSON.stringify(data));renderDashboard();renderTraining();renderHistory();renderCardio();renderProgress();fillSettings();
   }catch(err){setAppVisible(false);authMessage('Erro ao carregar seus dados: '+(err.message||'tente novamente'))}
 }
@@ -846,7 +869,7 @@ $('#clearDirectoryFilters').addEventListener('click',()=>{
  $('#directoryLocationStatus').textContent='A distância será estimada em linha reta. Sua localização só será usada após sua autorização.';
  renderProfessionalDirectory();
 });
-function renderProfessionalAdminList(rows){
+function renderProfessionalAdminList(rows,unlinkedAccounts=[]){
  const root=$('#professionalAdminList');root.replaceChildren();
  if(!rows.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum cadastro profissional encontrado.';root.append(empty);return}
  rows.forEach(p=>{
@@ -856,6 +879,15 @@ function renderProfessionalAdminList(rows){
   const details=document.createElement('p');details.textContent='CREF: '+p.cref_number+'/'+p.cref_state+' · '+[p.city,p.state].filter(Boolean).join('/');info.append(details);
   const email=document.createElement('p');email.textContent=p.contact_email||'Sem e-mail de contato';info.append(email);
   if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;info.append(bio)}
+  const owner=document.createElement('p');owner.className='muted';owner.style.fontSize='12px';owner.textContent=p.user_id?'Conta vinculada: '+p.user_id:'Sem conta vinculada';info.append(owner);
+  if(!p.user_id&&unlinkedAccounts.length){
+   const linkRow=document.createElement('div');linkRow.className='formrow';linkRow.style.marginTop='8px';
+   const select=document.createElement('select');select.setAttribute('aria-label','Selecionar conta profissional para vincular');
+   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Selecionar conta profissional';select.append(placeholder);
+   unlinkedAccounts.forEach(account=>{const option=document.createElement('option');option.value=account.user_id;option.textContent=account.email||account.user_id;select.append(option)});
+   const linkButton=document.createElement('button');linkButton.type='button';linkButton.className='btn small';linkButton.textContent='Vincular conta';linkButton.disabled=true;select.onchange=()=>linkButton.disabled=!select.value;linkButton.onclick=()=>linkProfessionalAccount(p.id,select.value);
+   linkRow.append(select,linkButton);info.append(linkRow);
+  }
   const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='9px';
   [['approved','Aprovar'],['rejected','Rejeitar'],['suspended','Suspender'],['pending','Voltar para análise']].forEach(([status,label])=>{
    const b=document.createElement('button');b.className='btn small';b.textContent=label;b.disabled=p.status===status;b.onclick=()=>reviewProfessional(p.id,status);actions.append(b);
@@ -875,6 +907,7 @@ async function loadProfessionalArea(){
  isAppAdmin=!!adminRes.data;myProfessional=mineRes.data||null;directoryProfessionals=directoryRes.data||[];
  renderProfessionalDirectory();
  $('#professionalAdminPanel').style.display=isAppAdmin?'block':'none';
+ $('#professionalFormCard').style.display=(accountType==='professional'||(isAppAdmin&&myProfessional))?'block':'none';
  $('#professionalStatus').textContent=professionalStatusLabel(myProfessional?.status);
  $('#proName').value=myProfessional?.full_name||data.profile.name||'';
  $('#proCref').value=myProfessional?.cref_number||'';
@@ -895,9 +928,13 @@ async function loadProfessionalArea(){
  else if(myProfessional?.status==='rejected')setProfessionalMessage('Seu cadastro não foi aprovado. Você pode atualizar as informações e reenviar para análise.');
  else if(myProfessional?.status==='suspended')setProfessionalMessage('Seu perfil está suspenso e não aparece no diretório.');
  if(isAppAdmin){
-  const adminRows=await cloud.from('professionals').select('*').order('created_at',{ascending:false});
+  const [adminRows,accountRows]=await Promise.all([
+   cloud.from('professionals').select('*').order('created_at',{ascending:false}),
+   cloud.rpc('admin_list_unlinked_professional_accounts')
+  ]);
   if(adminRows.error)throw adminRows.error;
-  renderProfessionalAdminList(adminRows.data||[]);
+  if(accountRows.error)throw accountRows.error;
+  renderProfessionalAdminList(adminRows.data||[],accountRows.data||[]);
  }
 }
 function previewProfessionalPhoto(file){
@@ -954,6 +991,21 @@ $('#professionalForm').onsubmit=async e=>{
   await loadProfessionalArea();toast('Cadastro profissional salvo.');
  }catch(err){setProfessionalMessage(err.message||'Não foi possível salvar o cadastro.',true)}
  finally{btn.disabled=false}
+};
+async function linkProfessionalAccount(profileId,userId){
+ if(!isAppAdmin||!profileId||!userId)return;
+ if(!confirm('Vincular este perfil à conta profissional selecionada?'))return;
+ const {error}=await cloud.from('professionals').update({user_id:userId}).eq('id',profileId).is('user_id',null);
+ if(error){toast('Não foi possível vincular a conta: '+error.message);return}
+ await loadProfessionalArea();toast('Conta profissional vinculada.');
+}
+$('#adminCreateProfessionalForm').onsubmit=async e=>{
+ e.preventDefault();if(!isAppAdmin)return;
+ const button=e.target.querySelector('button');button.disabled=true;$('#adminCreateMessage').textContent='Salvando perfil...';
+ const payload={user_id:null,full_name:$('#adminProName').value.trim(),cref_number:$('#adminProCref').value.trim(),cref_state:$('#adminProCrefState').value,contact_email:$('#adminProEmail').value.trim()||null,status:'pending'};
+ try{const {error}=await cloud.from('professionals').insert(payload);if(error)throw error;e.target.reset();$('#adminCreateMessage').textContent='Perfil cadastrado e enviado para análise.';await loadProfessionalArea();}
+ catch(err){$('#adminCreateMessage').textContent=err.message||'Não foi possível cadastrar o perfil.'}
+ finally{button.disabled=false}
 };
 async function reviewProfessional(id,status){
  if(!isAppAdmin)return;
