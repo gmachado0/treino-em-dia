@@ -224,6 +224,26 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
       <button class="btn primary" style="margin-top:12px">Cadastrar perfil para análise</button>
       <p id="adminCreateMessage" class="muted" style="font-size:12px;margin-top:8px"></p>
     </form>
+    <div class="card" style="margin:14px 0;padding:14px">
+      <h3 style="margin:0 0 8px">Gerenciar convites de acesso</h3>
+      <p class="sub" style="font-size:12px;margin-bottom:12px">Gere códigos para novos cadastros. O código completo aparece somente uma vez, logo após a criação.</p>
+      <form id="adminInviteForm">
+        <div class="formrow">
+          <div class="field"><label>Quantidade de utilizações</label><input id="inviteMaxUses" type="number" min="1" max="1000" value="1" required></div>
+          <div class="field"><label>Validade (opcional)</label><input id="inviteExpiresAt" type="date"></div>
+        </div>
+        <button class="btn primary" type="submit" style="margin-top:12px">Gerar código de convite</button>
+        <p id="adminInviteMessage" class="muted" style="font-size:12px;margin-top:8px"></p>
+        <div id="newInviteCodeWrap" style="display:none;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:12px">
+          <strong>Novo código de acesso</strong>
+          <p id="newInviteCode" style="font-size:19px;font-weight:800;letter-spacing:1px;overflow-wrap:anywhere;margin:8px 0"></p>
+          <button id="copyNewInviteCode" class="btn small" type="button">Copiar código</button>
+          <p class="muted" style="font-size:11px;margin-top:7px">Guarde este código agora. Por segurança, ele não poderá ser recuperado depois.</p>
+        </div>
+      </form>
+      <div class="sectionhead" style="margin:18px 0 8px"><h3>Convites existentes</h3><button type="button" class="btn small" id="refreshInvitesBtn">Atualizar</button></div>
+      <div id="adminInviteList" class="workout-list"><div class="empty">Carregando convites...</div></div>
+    </div>
     <div id="professionalAdminList" class="workout-list"></div>
   </div>
 </section>
@@ -896,6 +916,70 @@ function renderProfessionalAdminList(rows,unlinkedAccounts=[]){
   info.append(actions);card.append(info);root.append(card);
  });
 }
+function generateInviteCode(){
+ const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+ const bytes=new Uint8Array(12);crypto.getRandomValues(bytes);
+ const parts=[];
+ for(let i=0;i<bytes.length;i+=4)parts.push(Array.from(bytes.slice(i,i+4),b=>alphabet[b%alphabet.length]).join(''));
+ return 'TREINO-'+parts.join('-');
+}
+function inviteStatus(invite){
+ if(invite.revoked_at)return 'Revogado';
+ if(invite.expires_at&&new Date(invite.expires_at)<=new Date())return 'Expirado';
+ if(invite.use_count>=invite.max_uses)return 'Esgotado';
+ return 'Ativo';
+}
+function renderAdminInvites(rows){
+ const root=$('#adminInviteList');root.replaceChildren();
+ if(!rows.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum convite gerado ainda.';root.append(empty);return}
+ rows.forEach(invite=>{
+  const card=document.createElement('div');card.className='exercise';card.style.marginBottom='8px';
+  const info=document.createElement('div');info.style.flex='1';
+  const heading=document.createElement('strong');heading.textContent=inviteStatus(invite);info.append(heading);
+  const usage=document.createElement('p');usage.textContent='Utilizações: '+invite.use_count+' de '+invite.max_uses;info.append(usage);
+  const dates=document.createElement('p');dates.className='muted';dates.style.fontSize='12px';
+  dates.textContent='Criado em '+new Date(invite.created_at).toLocaleString('pt-BR')+' · '+(invite.expires_at?'Válido até '+new Date(invite.expires_at).toLocaleDateString('pt-BR'):'Sem vencimento');info.append(dates);
+  if(invite.revoked_at){const revoked=document.createElement('p');revoked.className='muted';revoked.textContent='Revogado em '+new Date(invite.revoked_at).toLocaleString('pt-BR');info.append(revoked)}
+  if(inviteStatus(invite)==='Ativo'){const button=document.createElement('button');button.type='button';button.className='btn small';button.textContent='Revogar convite';button.onclick=()=>revokeSignupInvite(invite.id);info.append(button)}
+  card.append(info);root.append(card);
+ });
+}
+async function loadAdminInvites(){
+ if(!isAppAdmin)return;
+ const root=$('#adminInviteList');root.textContent='Carregando convites...';
+ const {data,error}=await cloud.rpc('admin_list_signup_invites');
+ if(error){root.textContent='Não foi possível carregar os convites: '+error.message;return}
+ renderAdminInvites(data||[]);
+}
+async function revokeSignupInvite(id){
+ if(!isAppAdmin||!confirm('Revogar este convite? Ele não poderá mais ser utilizado.'))return;
+ const {error}=await cloud.rpc('admin_revoke_signup_invite',{p_invite_id:id});
+ if(error){toast('Não foi possível revogar: '+error.message);return}
+ toast('Convite revogado.');await loadAdminInvites();
+}
+$('#adminInviteForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!isAppAdmin)return;
+ const button=e.target.querySelector('button[type="submit"]'),message=$('#adminInviteMessage');
+ const maxUses=Number($('#inviteMaxUses').value),dateValue=$('#inviteExpiresAt').value;
+ if(!Number.isInteger(maxUses)||maxUses<1||maxUses>1000){message.textContent='Informe um limite entre 1 e 1000 utilizações.';return}
+ const code=generateInviteCode();
+ const expiresAt=dateValue?new Date(dateValue+'T23:59:59').toISOString():null;
+ button.disabled=true;message.textContent='Gerando convite...';$('#newInviteCodeWrap').style.display='none';
+ try{
+  const {error}=await cloud.rpc('admin_create_signup_invite',{p_code:code,p_max_uses:maxUses,p_expires_at:expiresAt});
+  if(error)throw error;
+  $('#newInviteCode').textContent=code;$('#newInviteCodeWrap').style.display='block';
+  message.textContent='Convite criado com sucesso. Copie e guarde o código.';
+  await loadAdminInvites();
+ }catch(err){message.textContent='Não foi possível gerar o convite: '+(err.message||'Erro inesperado.')}
+ finally{button.disabled=false}
+});
+$('#copyNewInviteCode').addEventListener('click',async()=>{
+ const code=$('#newInviteCode').textContent;
+ try{await navigator.clipboard.writeText(code);toast('Código copiado.')}
+ catch(err){toast('Não foi possível copiar automaticamente. Selecione e copie o código.')}
+});
+$('#refreshInvitesBtn').addEventListener('click',loadAdminInvites);
 async function loadProfessionalArea(){
  if(!currentUser)return;
  setProfessionalMessage('');
@@ -936,6 +1020,7 @@ async function loadProfessionalArea(){
   if(adminRows.error)throw adminRows.error;
   if(accountRows.error)throw accountRows.error;
   renderProfessionalAdminList(adminRows.data||[],accountRows.data||[]);
+  await loadAdminInvites();
  }
 }
 function previewProfessionalPhoto(file){
