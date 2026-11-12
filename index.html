@@ -967,7 +967,7 @@ async function loadAppointments(){
   const meta=document.createElement('p');meta.className='sub';meta.textContent=appointmentDateLabel(appointment.appointment_at)+' · '+appointment.service_type+' · '+appointment.modality;meta.style.cssText='font-size:11px;margin:0 0 5px';
   const status=document.createElement('p');status.textContent=appointmentStatusLabel(appointment.status);status.style.cssText='font-size:12px;font-weight:650;margin:0 0 5px';
   card.append(title,meta,status);
-  if(appointment.message){const msg=document.createElement('p');msg.textContent='Mensagem: '+appointment.message;msg.style.cssText='font-size:12px;margin:4px 0';card.append(msg)}
+  if(appointment.message){const msg=document.createElement('p');msg.textContent=appointment.message;msg.style.cssText='font-size:12px;margin:4px 0';card.append(msg)}
   if(appointment.proposed_at){const proposal=document.createElement('p');proposal.textContent='Horário sugerido: '+appointmentDateLabel(appointment.proposed_at);proposal.style.cssText='font-size:12px;margin:4px 0';card.append(proposal)}
   const actions=document.createElement('div');actions.className='actions';actions.style.cssText='margin-top:7px;gap:6px';
   const act=async(fn,label)=>{
