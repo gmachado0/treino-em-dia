@@ -199,6 +199,11 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <button type="button" class="btn small" id="clearDirectoryFilters" style="margin-top:10px">Limpar filtros</button>
   </div>
   <div id="professionalDirectory" class="workout-list"><div class="empty">Carregando profissionais...</div></div>
+  <div class="card" id="appointmentsPanel" style="margin-top:18px">
+    <div class="sectionhead"><h2 id="appointmentsHeading">Meus agendamentos</h2><button type="button" class="btn small" id="refreshAppointments">Atualizar</button></div>
+    <p class="sub" id="appointmentsIntro" style="font-size:12px;margin:4px 0 12px">Acompanhe suas solicitações e confirme os atendimentos realizados.</p>
+    <div id="appointmentsList" class="workout-list"><div class="empty">Carregando agendamentos...</div></div>
+  </div>
   <div class="card" id="professionalFormCard" style="margin-top:18px">
     <div class="sectionhead" style="margin:0 0 8px"><h2>Cadastro profissional</h2><span class="pill" id="professionalStatus">Não cadastrado</span></div>
     <p class="sub" style="font-size:12px;margin-bottom:14px">Profissionais de educação física podem cadastrar seu perfil. A publicação no diretório depende de aprovação administrativa e análise das informações do CREF.</p>
@@ -869,6 +874,9 @@ function openProfessionalProfile(p){
  if(p.price_session!==null&&p.price_session!==undefined)addSection('Preço por sessão',formatBRL(p.price_session));
  const ratingText=Number(p.review_count)>0?'★ '+Number(p.average_rating).toFixed(1).replace('.',',')+' de 5 · '+p.review_count+' avaliações':'Ainda não há avaliações publicadas.';
  addSection('Avaliações',ratingText);
+ if(accountType==='regular'&&!isAppAdmin){
+  const booking=document.createElement('button');booking.type='button';booking.className='btn primary';booking.textContent='Solicitar agendamento';booking.style.marginTop='18px';booking.onclick=()=>openAppointmentRequest(p);panel.append(booking);
+ }
  const contacts=document.createElement('div');contacts.className='actions';contacts.style.marginTop='18px';
  const wa=safeContactHref(p.whatsapp,'whatsapp'),email=safeContactHref(p.contact_email,'email');
  if(wa){const a=document.createElement('a');a.className='btn primary';a.href=wa;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Conversar pelo WhatsApp';contacts.append(a)}
@@ -877,6 +885,86 @@ function openProfessionalProfile(p){
  overlay.append(panel);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
  document.addEventListener('keydown',function onKey(e){if(e.key==='Escape'){overlay.remove();document.removeEventListener('keydown',onKey)}});
  document.body.append(overlay);
+}
+function appointmentStatusLabel(status){return ({pending:'Aguardando resposta do profissional',confirmed:'Agendado',reschedule_requested:'Nova data sugerida',awaiting_user_confirmation:'Aguardando sua confirmação',completed:'Atendimento concluído',attendance_disputed:'Atendimento contestado',cancelled:'Cancelado'})[status]||status}
+function appointmentDateLabel(value){return new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}
+function openAppointmentRequest(professional){
+ const overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+ const panel=document.createElement('form');panel.className='card';panel.style.cssText='width:min(100%,520px);max-height:92vh;overflow:auto;padding:20px;background:var(--panel)';
+ const heading=document.createElement('h2');heading.textContent='Solicitar atendimento';panel.append(heading);
+ const intro=document.createElement('p');intro.className='sub';intro.textContent='Profissional: '+professional.full_name+'. O pagamento será combinado diretamente com o profissional.';panel.append(intro);
+ const dateField=document.createElement('div');dateField.className='field';dateField.innerHTML='<label>Data desejada</label><input id="appointmentDate" type="date" required>';panel.append(dateField);
+ const timeField=document.createElement('div');timeField.className='field';timeField.style.marginTop='10px';timeField.innerHTML='<label>Horário desejado</label><input id="appointmentTime" type="time" required>';panel.append(timeField);
+ const serviceField=document.createElement('div');serviceField.className='field';serviceField.style.marginTop='10px';serviceField.innerHTML='<label>Tipo de atendimento</label><select id="appointmentService" required><option value="">Selecione</option><option>Avaliação física</option><option>Personal training</option><option>Consultoria</option><option>Outro</option></select>';panel.append(serviceField);
+ const modalityField=document.createElement('div');modalityField.className='field';modalityField.style.marginTop='10px';modalityField.innerHTML='<label>Modalidade</label><select id="appointmentModality"><option value="presencial">Presencial</option><option value="online">Online</option></select>';panel.append(modalityField);
+ const messageField=document.createElement('div');messageField.className='field';messageField.style.marginTop='10px';messageField.innerHTML='<label>Mensagem (opcional)</label><textarea id="appointmentMessage" maxlength="1000" rows="3" placeholder="Conte brevemente o que procura."></textarea>';panel.append(messageField);
+ const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='16px';
+ const submit=document.createElement('button');submit.type='submit';submit.className='btn primary';submit.textContent='Enviar solicitação';
+ const cancel=document.createElement('button');cancel.type='button';cancel.className='btn';cancel.textContent='Cancelar';cancel.onclick=()=>overlay.remove();actions.append(submit,cancel);panel.append(actions);
+ const note=document.createElement('p');note.className='muted';note.style.fontSize='12px';panel.append(note);
+ panel.onsubmit=async e=>{
+  e.preventDefault();submit.disabled=true;note.textContent='Enviando solicitação...';
+  try{
+   const localDate=new Date($('#appointmentDate').value+'T'+$('#appointmentTime').value);
+   if(!Number.isFinite(localDate.getTime())||localDate<=new Date())throw new Error('Escolha uma data e horário futuros.');
+   const {error}=await cloud.rpc('request_professional_appointment',{p_professional_id:professional.id,p_appointment_at:localDate.toISOString(),p_service_type:$('#appointmentService').value,p_modality:$('#appointmentModality').value,p_message:$('#appointmentMessage').value.trim()||null});
+   if(error)throw error;
+   overlay.remove();toast('Solicitação enviada ao profissional.');await loadAppointments();
+  }catch(err){note.textContent=err.message||'Não foi possível enviar a solicitação.';submit.disabled=false}
+ };
+ overlay.append(panel);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});document.body.append(overlay);
+ const dateInput=panel.querySelector('#appointmentDate');dateInput.min=new Date(Date.now()+60000).toISOString().slice(0,10);
+}
+async function loadAppointments(){
+ const root=$('#appointmentsList');if(!root||!currentUser)return;
+ root.replaceChildren();const empty=document.createElement('div');empty.className='empty';empty.textContent='Carregando agendamentos...';root.append(empty);
+ let query=cloud.from('appointments').select('*').order('appointment_at',{ascending:false});
+ if(accountType==='professional'&&!isAppAdmin){
+  if(!myProfessional){root.replaceChildren();empty.textContent='Seu perfil profissional ainda não está vinculado.';root.append(empty);return}
+  query=query.eq('professional_id',myProfessional.id);
+ }else query=query.eq('user_id',currentUser.id);
+ const {data:rows,error}=await query;if(error)throw error;
+ root.replaceChildren();
+ if(!rows?.length){const noRows=document.createElement('div');noRows.className='empty';noRows.textContent=accountType==='professional'?'Você ainda não recebeu solicitações.':'Você ainda não solicitou atendimentos.';root.append(noRows);return}
+ for(const appointment of rows){
+  const card=document.createElement('article');card.className='card';card.style.marginBottom='10px';
+  const professional=directoryProfessionals.find(p=>p.id===appointment.professional_id);
+  const title=document.createElement('h3');title.textContent=accountType==='professional'?appointment.service_type:(professional?.full_name||'Profissional');card.append(title);
+  const meta=document.createElement('p');meta.className='sub';meta.textContent=appointmentDateLabel(appointment.appointment_at)+' · '+appointment.service_type+' · '+appointment.modality;card.append(meta);
+  const status=document.createElement('p');status.textContent=appointmentStatusLabel(appointment.status);status.style.fontWeight='650';card.append(status);
+  if(appointment.message){const msg=document.createElement('p');msg.textContent='Mensagem: '+appointment.message;card.append(msg)}
+  if(appointment.proposed_at){const proposal=document.createElement('p');proposal.textContent='Horário sugerido: '+appointmentDateLabel(appointment.proposed_at);card.append(proposal)}
+  const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='10px';
+  const act=async(fn,label)=>{
+   const button=document.createElement('button');button.type='button';button.className='btn small';button.textContent=label;button.onclick=async()=>{button.disabled=true;try{await fn();await loadAppointments();toast('Agendamento atualizado.')}catch(err){button.disabled=false;toast(err.message||'Não foi possível atualizar.')}};actions.append(button);
+  };
+  if(accountType==='professional'&&!isAppAdmin){
+   if(appointment.status==='pending'){
+    await act(async()=>{const {error}=await cloud.rpc('professional_respond_appointment',{p_appointment_id:appointment.id,p_action:'accept'});if(error)throw error},'Aceitar');
+    await act(async()=>{const {error}=await cloud.rpc('professional_respond_appointment',{p_appointment_id:appointment.id,p_action:'decline'});if(error)throw error},'Recusar');
+    await act(async()=>{const date=prompt('Nova data e horário (AAAA-MM-DD HH:MM)');if(!date)return;const parsed=new Date(date.replace(' ','T'));if(!Number.isFinite(parsed.getTime()))throw new Error('Data inválida.');const {error}=await cloud.rpc('professional_respond_appointment',{p_appointment_id:appointment.id,p_action:'propose',p_proposed_at:parsed.toISOString()});if(error)throw error},'Sugerir horário');
+   }else if(appointment.status==='confirmed')await act(async()=>{const {error}=await cloud.rpc('professional_mark_attended',{p_appointment_id:appointment.id});if(error)throw error},'Marcar atendimento realizado');
+  }else{
+   if(appointment.status==='reschedule_requested'){
+    await act(async()=>{const {error}=await cloud.rpc('user_respond_appointment',{p_appointment_id:appointment.id,p_action:'accept'});if(error)throw error},'Aceitar novo horário');
+    await act(async()=>{const {error}=await cloud.rpc('user_respond_appointment',{p_appointment_id:appointment.id,p_action:'decline'});if(error)throw error},'Recusar');
+   }else if(['pending','confirmed'].includes(appointment.status))await act(async()=>{const {error}=await cloud.rpc('user_respond_appointment',{p_appointment_id:appointment.id,p_action:'cancel'});if(error)throw error},'Cancelar solicitação');
+   else if(appointment.status==='awaiting_user_confirmation'){
+    await act(async()=>{const {error}=await cloud.rpc('user_confirm_attendance',{p_appointment_id:appointment.id,p_attended:true});if(error)throw error},'Confirmar atendimento');
+    await act(async()=>{const {error}=await cloud.rpc('user_confirm_attendance',{p_appointment_id:appointment.id,p_attended:false});if(error)throw error},'Contestar atendimento');
+   }else if(appointment.status==='completed'){
+    const {data:existing,error}=await cloud.from('professional_reviews').select('*').eq('appointment_id',appointment.id).maybeSingle();if(error)throw error;
+    const reviewForm=document.createElement('form');reviewForm.style.cssText='margin-top:12px;padding-top:10px;border-top:1px solid var(--line)';
+    const label=document.createElement('label');label.textContent=existing?'Editar sua avaliação':'Avalie este atendimento';reviewForm.append(label);
+    const stars=document.createElement('select');stars.required=true;stars.style.margin='8px 0';for(let n=1;n<=5;n++){const option=document.createElement('option');option.value=String(n);option.textContent=n+' estrela'+(n>1?'s':'');stars.append(option)}stars.value=String(existing?.rating||5);reviewForm.append(stars);
+    const comment=document.createElement('textarea');comment.required=true;comment.maxLength=1000;comment.rows=3;comment.placeholder='Conte como foi sua experiência';comment.value=existing?.comment||'';reviewForm.append(comment);
+    const save=document.createElement('button');save.type='submit';save.className='btn small primary';save.textContent=existing?'Atualizar avaliação':'Publicar avaliação';reviewForm.append(save);
+    reviewForm.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{const payload={appointment_id:appointment.id,user_id:currentUser.id,professional_id:appointment.professional_id,rating:Number(stars.value),comment:comment.value.trim()};const result=existing?await cloud.from('professional_reviews').update({rating:payload.rating,comment:payload.comment,updated_at:new Date().toISOString()}).eq('id',existing.id):await cloud.from('professional_reviews').insert(payload);if(result.error)throw result.error;toast('Avaliação salva.');await loadProfessionalArea()}catch(err){save.disabled=false;toast(err.message||'Não foi possível salvar a avaliação.')}};
+    card.append(reviewForm);
+   }
+  }
+  if(actions.childElementCount)card.append(actions);root.append(card);
+ }
 }
 function renderProfessionalDirectory(){
  const root=$('#professionalDirectory');root.replaceChildren();
@@ -1052,6 +1140,10 @@ async function loadProfessionalArea(){
  renderProfessionalDirectory();
  $('#professionalAdminPanel').style.display=isAppAdmin?'block':'none';
  $('#professionalFormCard').style.display=(accountType==='professional'&&!isAppAdmin)?'block':'none';
+ $('#appointmentsPanel').style.display=(accountType==='professional'&&!!myProfessional&&!isAppAdmin)?'block':(accountType==='regular'&&!isAppAdmin?'block':'none');
+ $('#appointmentsHeading').textContent=accountType==='professional'?'Solicitações recebidas':'Meus agendamentos';
+ $('#appointmentsIntro').textContent=accountType==='professional'?'Responda às solicitações e registre os atendimentos realizados.':'Acompanhe suas solicitações e confirme os atendimentos realizados.';
+ await loadAppointments();
  $('#professionalStatus').textContent=professionalStatusLabel(myProfessional?.status);
  $('#proName').value=myProfessional?.full_name||data.profile.name||'';
  $('#proCref').value=myProfessional?.cref_number||'';
