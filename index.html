@@ -1028,7 +1028,7 @@ function renderProfessionalDirectory(){
   card.addEventListener('click',e=>{if(e.target.closest('a,button,input,select,textarea'))return;open()});
   card.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target===card){e.preventDefault();open()}});
   const info=document.createElement('div');info.style.flex='1';
-  if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Abrir perfil de '+p.full_name;photo.loading='lazy';photo.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:50%;float:right;margin:0 0 8px 12px;border:1px solid var(--line);cursor:pointer';photo.addEventListener('click',open);info.append(photo)}
+  if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Abrir perfil de '+p.full_name;photo.loading='lazy';photo.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:50%;float:right;margin:0 0 8px 12px;border:1px solid var(--line);cursor:pointer';info.append(photo)}
   const name=document.createElement('h3');name.textContent=p.full_name;info.append(name);
   const location=document.createElement('p');location.className='muted';location.textContent=[p.city,p.state].filter(Boolean).join(' / ')||'Localização não informada';info.append(location);
   if(p._distanceKm!==null){const distance=document.createElement('p');distance.textContent='Aproximadamente '+(p._distanceKm<10?p._distanceKm.toFixed(1).replace('.',','):Math.round(p._distanceKm))+' km de você';distance.style.color='var(--accent)';distance.style.fontSize='12px';info.append(distance)}
