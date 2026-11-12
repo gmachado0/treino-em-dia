@@ -513,7 +513,7 @@ function updateCardioSettingsFields(){
  if(max===0&&separate)$('#settingsCardioPreference').value='junto';
  const select=$('#settingsCardioDays');
  Array.from(select.options).forEach(option=>{option.disabled=Number(option.value)>max});
- if(Number(select.value)>max)select.value=String(max);
+ if(max<1)select.value='1';else if(Number(select.value)>max||Number(select.value)<1)select.value=String(max);
 }
 $('#settingsCardioPreference').addEventListener('change',updateCardioSettingsFields);
 $('#settingsCardioDays').addEventListener('change',updateCardioSettingsFields);
@@ -527,7 +527,7 @@ $('#updateCardioPlan').onclick=async()=>{
  try{
   const {data:q,error:qErr}=await cloud.from('questionnaires').select('*').eq('user_id',currentUser.id).single();
   if(qErr)throw qErr;
-  const updated={...q,cardio_preference:$('#settingsCardioPreference').value,cardio_days_per_week:Number($('#settingsCardioDays').value),updated_at:new Date().toISOString()};
+  const updated={...q,cardio_preference:$('#settingsCardioPreference').value,cardio_days_per_week:$('#settingsCardioPreference').value==='separado'?Math.min(3,Math.max(1,Number($('#settingsCardioDays').value)||1)):1,updated_at:new Date().toISOString()};
   const {error:saveErr}=await cloud.from('questionnaires').upsert(updated,{onConflict:'user_id'});
   if(saveErr)throw saveErr;
   const {error:deactivateErr}=await cloud.from('workout_plans').update({active:false}).eq('user_id',currentUser.id).eq('active',true);
@@ -673,7 +673,7 @@ function readQuestionnaire(){
     experience_level:$('#qExperience').value,
     days_per_week:+$('#qDays').value,
     cardio_preference:$('#qCardioPreference').value,
-    cardio_days_per_week:+$('#qCardioDays').value,
+    cardio_days_per_week:$('#qCardioPreference').value==='separado'?Math.min(3,Math.max(1,Number($('#qCardioDays').value)||1)):1,
     session_duration_min:+$('#qDuration').value,
     training_location:$('#qLocation').value,
     available_equipment:Array.from(document.querySelectorAll('input[name="equipment"]:checked')).map(x=>x.value),
@@ -691,7 +691,7 @@ function updateCardioQuestionFields(){
  if(max===0&&separate)$('#qCardioPreference').value='junto';
  const select=$('#qCardioDays');
  Array.from(select.options).forEach(option=>{option.disabled=Number(option.value)>max});
- if(Number(select.value)>max)select.value=String(max);
+ if(max<1)select.value='1';else if(Number(select.value)>max||Number(select.value)<1)select.value=String(max);
 }
 $('#qCardioPreference').addEventListener('change',updateCardioQuestionFields);
 $('#qDays').addEventListener('change',updateCardioQuestionFields);
