@@ -850,7 +850,7 @@ $('#professionalForm').onsubmit=async e=>{
  };
  try{
   if(myProfessional){
-   if(myProfessional.status==='rejected'||myProfessional.status==='suspended')payload.status='pending';
+   if(myProfessional.status==='rejected')payload.status='pending';
    const {error}=await cloud.from('professionals').update(payload).eq('id',myProfessional.id).eq('user_id',currentUser.id);if(error)throw error;
   }else{
    const {error}=await cloud.from('professionals').insert(payload);if(error)throw error;
