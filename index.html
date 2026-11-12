@@ -915,7 +915,7 @@ function openAppointmentRequest(professional){
   }catch(err){note.textContent=err.message||'Não foi possível enviar a solicitação.';submit.disabled=false}
  };
  overlay.append(panel);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});document.body.append(overlay);
- const dateInput=panel.querySelector('#appointmentDate');dateInput.min=new Date(Date.now()+60000).toISOString().slice(0,10);
+ const dateInput=panel.querySelector('#appointmentDate');dateInput.value=iso();dateInput.min=iso();
 }
 function openAppointmentReschedule(appointment,onSuccess){
  const overlay=document.createElement('div');
@@ -925,7 +925,7 @@ function openAppointmentReschedule(appointment,onSuccess){
  const intro=document.createElement('p');intro.className='sub';intro.textContent='Escolha uma nova data e horário para este atendimento. O aluno precisará confirmar a alteração.';panel.append(intro);
  const dateField=document.createElement('div');dateField.className='field';dateField.style.marginTop='16px';
  const dateLabel=document.createElement('label');dateLabel.textContent='Nova data';dateLabel.htmlFor='rescheduleDate';dateField.append(dateLabel);
- const dateInput=document.createElement('input');dateInput.id='rescheduleDate';dateInput.type='date';dateInput.required=true;dateInput.min=new Date().toLocaleDateString('en-CA');dateField.append(dateInput);panel.append(dateField);
+ const dateInput=document.createElement('input');dateInput.id='rescheduleDate';dateInput.type='date';dateInput.required=true;dateInput.value=iso();dateInput.min=iso();dateField.append(dateInput);panel.append(dateField);
  const timeField=document.createElement('div');timeField.className='field';timeField.style.marginTop='12px';
  const timeLabel=document.createElement('label');timeLabel.textContent='Novo horário';timeLabel.htmlFor='rescheduleTime';timeField.append(timeLabel);
  const timeInput=document.createElement('input');timeInput.id='rescheduleTime';timeInput.type='time';timeInput.required=true;timeInput.step='300';timeField.append(timeInput);panel.append(timeField);
