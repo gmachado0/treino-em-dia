@@ -917,6 +917,38 @@ function openAppointmentRequest(professional){
  overlay.append(panel);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});document.body.append(overlay);
  const dateInput=panel.querySelector('#appointmentDate');dateInput.min=new Date(Date.now()+60000).toISOString().slice(0,10);
 }
+function openAppointmentReschedule(appointment,onSuccess){
+ const overlay=document.createElement('div');
+ overlay.style.cssText='position:fixed;inset:0;z-index:1150;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+ const panel=document.createElement('form');panel.className='card';panel.style.cssText='width:min(100%,440px);max-height:92vh;overflow:auto;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px';
+ const heading=document.createElement('h2');heading.textContent='Sugerir novo horário';heading.style.margin='0 0 8px';panel.append(heading);
+ const intro=document.createElement('p');intro.className='sub';intro.textContent='Escolha uma nova data e horário para este atendimento. O aluno precisará confirmar a alteração.';panel.append(intro);
+ const dateField=document.createElement('div');dateField.className='field';dateField.style.marginTop='16px';
+ const dateLabel=document.createElement('label');dateLabel.textContent='Nova data';dateLabel.htmlFor='rescheduleDate';dateField.append(dateLabel);
+ const dateInput=document.createElement('input');dateInput.id='rescheduleDate';dateInput.type='date';dateInput.required=true;dateInput.min=new Date().toLocaleDateString('en-CA');dateField.append(dateInput);panel.append(dateField);
+ const timeField=document.createElement('div');timeField.className='field';timeField.style.marginTop='12px';
+ const timeLabel=document.createElement('label');timeLabel.textContent='Novo horário';timeLabel.htmlFor='rescheduleTime';timeField.append(timeLabel);
+ const timeInput=document.createElement('input');timeInput.id='rescheduleTime';timeInput.type='time';timeInput.required=true;timeInput.step='300';timeField.append(timeInput);panel.append(timeField);
+ const note=document.createElement('p');note.className='muted';note.style.cssText='font-size:12px;margin-top:12px';panel.append(note);
+ const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='18px';
+ const submit=document.createElement('button');submit.type='submit';submit.className='btn primary';submit.textContent='Enviar contraproposta';
+ const cancel=document.createElement('button');cancel.type='button';cancel.className='btn';cancel.textContent='Cancelar';cancel.onclick=()=>overlay.remove();
+ actions.append(submit,cancel);panel.append(actions);
+ panel.onsubmit=async e=>{
+  e.preventDefault();
+  if(!dateInput.value||!timeInput.value){note.textContent='Informe a data e o horário.';return}
+  const proposedAt=new Date(dateInput.value+'T'+timeInput.value);
+  if(!Number.isFinite(proposedAt.getTime())||proposedAt<=new Date()){note.textContent='Escolha uma data e horário futuros.';return}
+  submit.disabled=true;cancel.disabled=true;note.textContent='Enviando contraproposta...';
+  try{
+   const {error}=await cloud.rpc('professional_respond_appointment',{p_appointment_id:appointment.id,p_action:'propose',p_proposed_at:proposedAt.toISOString()});
+   if(error)throw error;
+   overlay.remove();toast('Novo horário enviado para confirmação.');if(onSuccess)await onSuccess();
+  }catch(err){submit.disabled=false;cancel.disabled=false;note.textContent=err.message||'Não foi possível enviar a contraproposta.'}
+ };
+ overlay.append(panel);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});document.body.append(overlay);
+ dateInput.focus();
+}
 async function loadAppointments(){
  const root=$('#appointmentsList');if(!root||!currentUser)return;
  root.replaceChildren();const empty=document.createElement('div');empty.className='empty';empty.textContent='Carregando agendamentos...';root.append(empty);
@@ -944,7 +976,7 @@ async function loadAppointments(){
    if(appointment.status==='pending'){
     await act(async()=>{const {error}=await cloud.rpc('professional_respond_appointment',{p_appointment_id:appointment.id,p_action:'accept'});if(error)throw error},'Aceitar');
     await act(async()=>{const {error}=await cloud.rpc('professional_respond_appointment',{p_appointment_id:appointment.id,p_action:'decline'});if(error)throw error},'Recusar');
-    await act(async()=>{const date=prompt('Nova data e horário (AAAA-MM-DD HH:MM)');if(!date)return;const parsed=new Date(date.replace(' ','T'));if(!Number.isFinite(parsed.getTime()))throw new Error('Data inválida.');const {error}=await cloud.rpc('professional_respond_appointment',{p_appointment_id:appointment.id,p_action:'propose',p_proposed_at:parsed.toISOString()});if(error)throw error},'Sugerir horário');
+    const proposeButton=document.createElement('button');proposeButton.type='button';proposeButton.className='btn small';proposeButton.textContent='Sugerir horário';proposeButton.onclick=()=>openAppointmentReschedule(appointment,loadAppointments);actions.append(proposeButton);
    }else if(appointment.status==='confirmed')await act(async()=>{const {error}=await cloud.rpc('professional_mark_attended',{p_appointment_id:appointment.id});if(error)throw error},'Marcar atendimento realizado');
   }else{
    if(appointment.status==='reschedule_requested'){
