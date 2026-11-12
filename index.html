@@ -961,14 +961,15 @@ async function loadAppointments(){
  root.replaceChildren();
  if(!rows?.length){const noRows=document.createElement('div');noRows.className='empty';noRows.textContent=accountType==='professional'?'Você ainda não recebeu solicitações.':'Você ainda não solicitou atendimentos.';root.append(noRows);return}
  for(const appointment of rows){
-  const card=document.createElement('article');card.className='card';card.style.marginBottom='10px';
+  const card=document.createElement('article');card.className='card';card.style.cssText='margin-bottom:7px;padding:11px 13px;box-shadow:none;border-radius:12px';
   const professional=directoryProfessionals.find(p=>p.id===appointment.professional_id);
-  const title=document.createElement('h3');title.textContent=accountType==='professional'?appointment.service_type:(professional?.full_name||'Profissional');card.append(title);
-  const meta=document.createElement('p');meta.className='sub';meta.textContent=appointmentDateLabel(appointment.appointment_at)+' · '+appointment.service_type+' · '+appointment.modality;card.append(meta);
-  const status=document.createElement('p');status.textContent=appointmentStatusLabel(appointment.status);status.style.fontWeight='650';card.append(status);
-  if(appointment.message){const msg=document.createElement('p');msg.textContent='Mensagem: '+appointment.message;card.append(msg)}
-  if(appointment.proposed_at){const proposal=document.createElement('p');proposal.textContent='Horário sugerido: '+appointmentDateLabel(appointment.proposed_at);card.append(proposal)}
-  const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='10px';
+  const title=document.createElement('h3');title.textContent=accountType==='professional'?appointment.service_type:(professional?.full_name||'Profissional');title.style.cssText='font-size:15px;margin:0 0 4px';
+  const meta=document.createElement('p');meta.className='sub';meta.textContent=appointmentDateLabel(appointment.appointment_at)+' · '+appointment.service_type+' · '+appointment.modality;meta.style.cssText='font-size:11px;margin:0 0 5px';
+  const status=document.createElement('p');status.textContent=appointmentStatusLabel(appointment.status);status.style.cssText='font-size:12px;font-weight:650;margin:0 0 5px';
+  card.append(title,meta,status);
+  if(appointment.message){const msg=document.createElement('p');msg.textContent='Mensagem: '+appointment.message;msg.style.cssText='font-size:12px;margin:4px 0';card.append(msg)}
+  if(appointment.proposed_at){const proposal=document.createElement('p');proposal.textContent='Horário sugerido: '+appointmentDateLabel(appointment.proposed_at);proposal.style.cssText='font-size:12px;margin:4px 0';card.append(proposal)}
+  const actions=document.createElement('div');actions.className='actions';actions.style.cssText='margin-top:7px;gap:6px';
   const act=async(fn,label)=>{
    const button=document.createElement('button');button.type='button';button.className='btn small';button.textContent=label;button.onclick=async()=>{button.disabled=true;try{await fn();await loadAppointments();toast('Agendamento atualizado.')}catch(err){button.disabled=false;toast(err.message||'Não foi possível atualizar.')}};actions.append(button);
   };
