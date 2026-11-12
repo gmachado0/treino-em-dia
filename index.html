@@ -888,7 +888,7 @@ function openProfessionalProfile(p){
  document.addEventListener('keydown',function onKey(e){if(e.key==='Escape'){overlay.remove();document.removeEventListener('keydown',onKey)}});
  document.body.append(overlay);
 }
-function appointmentStatusLabel(status){return ({pending:'Aguardando resposta do profissional',confirmed:'Agendado',reschedule_requested:'Nova data sugerida',awaiting_user_confirmation:'Aguardando sua confirmação',completed:'Atendimento concluído',attendance_disputed:'Atendimento contestado',cancelled:'Cancelado'})[status]||status}
+function appointmentStatusLabel(status){return ({pending:'Aguardando resposta do profissional',confirmed:'Agendado',reschedule_requested:'Nova data sugerida',reschedule_declined:'Horário sugerido recusado · solicitação encerrada',awaiting_user_confirmation:'Aguardando sua confirmação',completed:'Atendimento concluído',attendance_disputed:'Atendimento contestado',cancelled:'Cancelado'})[status]||status}
 function appointmentDateLabel(value){return new Date(value).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}
 function openAppointmentRequest(professional){
  const overlay=document.createElement('div');overlay.style.cssText='position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
@@ -981,7 +981,7 @@ async function loadAppointments(){
   }else{
    if(appointment.status==='reschedule_requested'){
     await act(async()=>{const {error}=await cloud.rpc('user_respond_appointment',{p_appointment_id:appointment.id,p_action:'accept'});if(error)throw error},'Aceitar novo horário');
-    await act(async()=>{const {error}=await cloud.rpc('user_respond_appointment',{p_appointment_id:appointment.id,p_action:'decline'});if(error)throw error},'Recusar');
+    await act(async()=>{const {error}=await cloud.rpc('user_decline_reschedule',{p_appointment_id:appointment.id});if(error)throw error},'Não posso nesse horário');
    }else if(['pending','confirmed'].includes(appointment.status))await act(async()=>{const {error}=await cloud.rpc('user_respond_appointment',{p_appointment_id:appointment.id,p_action:'cancel'});if(error)throw error},'Cancelar solicitação');
    else if(appointment.status==='awaiting_user_confirmation'){
     await act(async()=>{const {error}=await cloud.rpc('user_confirm_attendance',{p_appointment_id:appointment.id,p_attended:true});if(error)throw error},'Confirmar atendimento');
