@@ -178,6 +178,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
   </div>
   <div class="card" style="margin-top:12px"><h2>Sobre os dados</h2><p class="sub" style="font-size:13px;margin-top:7px">Seus dados são vinculados à sua conta e sincronizados pelo Supabase. Use o backup JSON como cópia adicional. Não compartilhe sua senha.</p></div>
   <div class="card" style="margin-top:12px"><h2>Recomeçar do zero</h2><p class="sub" style="font-size:12px;margin:5px 0 12px">Apaga seus dados de treino, medidas, histórico, questionário, perfil e fichas salvas na nuvem e neste dispositivo. Sua conta e seu e-mail de acesso serão mantidos. Depois, você poderá preencher o questionário novamente.</p><button class="btn" id="resetData" style="border-color:#793f42;color:#ff9999">Apagar meus dados e recomeçar</button><p id="resetMessage" class="muted" style="font-size:12px;margin-top:10px"></p></div>
+</section>
 
 <section id="professionals" class="view">
   <p class="eyebrow">Rede de atendimento</p><h1>Profissionais</h1>
@@ -204,7 +205,6 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;
     <p class="sub" style="font-size:12px;margin-bottom:12px">Analise os dados e o registro profissional antes de publicar um perfil. A aprovação é manual.</p>
     <div id="professionalAdminList" class="workout-list"></div>
   </div>
-</section>
 </section>
 </div>
 <nav class="tabs">
@@ -301,7 +301,7 @@ function renderTraining(){
  $('#finishWorkout').style.display=entry?'inline-block':'none';
  renderHistory();
 }
-function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();if(tab==='professionals')loadProfessionalArea();window.scrollTo(0,0)}
+function openTab(tab){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===tab));document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='training')renderTraining();if(tab==='progress')renderProgress();if(tab==='cardio')renderCardio();if(tab==='settings')fillSettings();if(tab==='professionals')loadProfessionalArea().catch(err=>{const root=$('#professionalDirectory');if(root){root.replaceChildren();const msg=document.createElement('div');msg.className='empty';msg.textContent='Não foi possível carregar os profissionais: '+(err.message||'erro desconhecido');root.append(msg)}setProfessionalMessage('Falha ao carregar os dados: '+(err.message||'erro desconhecido'),true)});window.scrollTo(0,0)}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
 $('#startWorkout').onclick=()=>{const current=activeWorkout(selectedDay);if(current)return;startWorkoutEntry(selectedDay,selectedWorkoutDay)};
 $('#finishWorkout').onclick=async()=>{const entry=activeWorkout(selectedDay);if(!entry||!confirm('Marcar esta sessão como concluída?'))return;entry.status='completed';const entryWeek=monday(new Date(entry.date+'T12:00:00')).toISOString().slice(0,10);data.completed[entryWeek+'_'+(entry.scheduledDay??entry.day)]=entry.date;editingSessionId=null;delete data.editingSessionId;save();await syncCloudData();await loadCloudData();renderTraining();renderHistory();renderDashboard();toast('Sessão concluída e salva no histórico')};
