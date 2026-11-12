@@ -791,10 +791,15 @@ async function startCloudSession(session){
   if(!session){currentUser=null;accountType='regular';isAppAdmin=false;window.cloudReady=false;setAppVisible(false);showOnboarding(false);return}
   currentUser=session.user;$('#accountEmail').textContent=currentUser.email||'Conta';
   try{
-    const {data:account,error:accountError}=await cloud.from('account_types').select('account_type').eq('user_id',currentUser.id).maybeSingle();
-    if(accountError)throw accountError;
-    accountType=account?.account_type||'regular';
-    if(accountType==='professional'){
+    const [accountResult,adminResult]=await Promise.all([
+      cloud.from('account_types').select('account_type').eq('user_id',currentUser.id).maybeSingle(),
+      cloud.from('app_admins').select('user_id').eq('user_id',currentUser.id).maybeSingle()
+    ]);
+    if(accountResult.error)throw accountResult.error;
+    if(adminResult.error)throw adminResult.error;
+    isAppAdmin=!!adminResult.data;
+    accountType=accountResult.data?.account_type||'regular';
+    if(accountType==='professional'&&!isAppAdmin){
       window.cloudReady=true;setAppVisible(true);showOnboarding(false);applyAccountNavigation();
       await loadProfessionalArea();$('#professionalFormCard').style.display='block';$('#professionalAdminPanel').style.display='none';
       return;
@@ -913,6 +918,7 @@ function renderProfessionalAdminList(rows,unlinkedAccounts=[]){
   [['approved','Aprovar'],['rejected','Rejeitar'],['suspended','Suspender'],['pending','Voltar para análise']].forEach(([status,label])=>{
    const b=document.createElement('button');b.className='btn small';b.textContent=label;b.disabled=p.status===status;b.onclick=()=>reviewProfessional(p.id,status);actions.append(b);
   });
+  const deleteButton=document.createElement('button');deleteButton.type='button';deleteButton.className='btn small';deleteButton.textContent='Excluir cadastro';deleteButton.style.color='var(--danger)';deleteButton.onclick=()=>deleteProfessionalAdmin(p);actions.append(deleteButton);
   info.append(actions);card.append(info);root.append(card);
  });
 }
@@ -992,7 +998,7 @@ async function loadProfessionalArea(){
  isAppAdmin=!!adminRes.data;myProfessional=mineRes.data||null;directoryProfessionals=directoryRes.data||[];
  renderProfessionalDirectory();
  $('#professionalAdminPanel').style.display=isAppAdmin?'block':'none';
- $('#professionalFormCard').style.display=(accountType==='professional'||(isAppAdmin&&myProfessional))?'block':'none';
+ $('#professionalFormCard').style.display=(accountType==='professional'&&!isAppAdmin)?'block':'none';
  $('#professionalStatus').textContent=professionalStatusLabel(myProfessional?.status);
  $('#proName').value=myProfessional?.full_name||data.profile.name||'';
  $('#proCref').value=myProfessional?.cref_number||'';
@@ -1098,6 +1104,17 @@ async function editProfessionalAdmin(profile){
  const {error}=await cloud.from('professionals').update(patch).eq('id',profile.id);
  if(error){toast('Não foi possível editar o perfil: '+error.message);return}
  await loadProfessionalArea();toast('Dados do perfil atualizados. Se estava aprovado, o perfil voltará para análise.');
+}
+async function deleteProfessionalAdmin(profile){
+ if(!isAppAdmin||!profile)return;
+ const warning=profile.user_id
+  ?'Este perfil está vinculado a uma conta profissional. A exclusão removerá somente o perfil, não a conta de acesso. Deseja continuar?'
+  :'Deseja excluir definitivamente este cadastro profissional?';
+ if(!confirm(warning))return;
+ const {error}=await cloud.from('professionals').delete().eq('id',profile.id);
+ if(error){toast('Não foi possível excluir o cadastro: '+error.message);return}
+ if(myProfessional?.id===profile.id)myProfessional=null;
+ await loadProfessionalArea();toast('Cadastro profissional excluído.');
 }
 async function linkProfessionalAccount(profileId,userId){
  if(!isAppAdmin||!profileId||!userId)return;
