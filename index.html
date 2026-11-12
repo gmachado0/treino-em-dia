@@ -19,6 +19,8 @@ h1{font-size:clamp(27px,5vw,38px);line-height:1.1;letter-spacing:-1.2px;margin:0
 .tabs button{flex:1;min-width:0;padding:8px 5px;font-size:11px}.tabs button.active{background:#2b3322;color:var(--accent)}.tabs span{display:block;font-size:18px;margin-bottom:2px}
 .view{display:none}.view.active{display:block}.workout-list{display:grid;gap:10px}.exercise{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);padding:15px;border-radius:16px}.exercise h3{font-size:15px;margin:0 0 3px}.exercise p{font-size:12px;color:var(--muted);margin:0}.exercise .meta{font-size:12px;color:var(--accent);margin-top:7px}.exercise button{white-space:nowrap}.exercise.done{opacity:.68;border-color:#526d36}.pill{font-size:11px;padding:5px 8px;border-radius:99px;background:var(--panel2);color:var(--muted);display:inline-block}
 .formrow{display:flex;gap:9px;flex-wrap:wrap}.field{display:grid;gap:6px;flex:1;min-width:120px}.field label{font-size:12px;color:var(--muted)}input,select{width:100%;border:1px solid var(--line);border-radius:11px;background:#111317;color:var(--text);padding:11px;min-width:0}input:focus,select:focus{outline:1px solid var(--accent);border-color:var(--accent)}
+textarea{width:100%;min-height:112px;resize:vertical;border:1px solid var(--line);border-radius:12px;background:#111317;color:var(--text);padding:12px;font:inherit;line-height:1.5}textarea:focus{outline:1px solid var(--accent);border-color:var(--accent)}
+.review-panel{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#14161a}.review-panel h4{margin:0 0 8px;font-size:14px}.review-stars{max-width:180px;margin:8px 0 12px}.review-comment{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0 0;color:var(--text)}.review-meta{font-size:11px;color:var(--muted);margin-top:8px}.review-actions{display:flex;gap:8px;align-items:center;margin-top:12px}.directory-card{cursor:pointer;transition:border-color .15s,background .15s}.directory-card:hover{border-color:#65734e;background:#1c201a}.directory-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .exercise-detail{margin-top:10px;padding:13px;background:#14161a;border-radius:13px;border:1px solid var(--line);display:none}.exercise-detail.open{display:block}.setrow{display:grid;grid-template-columns:45px 1fr 1fr 42px;gap:7px;align-items:center;margin-top:8px}.setrow input{padding:8px;text-align:center}.setrow button{height:38px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text)}.setrow button.checked{background:var(--accent);color:#111;border-color:var(--accent)}
 .timerbox{display:flex;align-items:center;justify-content:space-between;gap:12px}.timer{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px}.muted{color:var(--muted)}.empty{padding:28px;text-align:center;color:var(--muted)}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:11px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-weight:600}.chart{height:180px;width:100%;display:block}.notice{border:1px solid #4d6035;background:#20271b;color:#d8efbd;padding:12px 14px;border-radius:13px;font-size:13px;margin-top:13px}.danger{color:var(--danger)}.actions{display:flex;gap:8px;flex-wrap:wrap}.hidden{display:none!important}
@@ -954,13 +956,46 @@ async function loadAppointments(){
     await act(async()=>{const {error}=await cloud.rpc('user_confirm_attendance',{p_appointment_id:appointment.id,p_attended:false});if(error)throw error},'Contestar atendimento');
    }else if(appointment.status==='completed'){
     const {data:existing,error}=await cloud.from('professional_reviews').select('*').eq('appointment_id',appointment.id).maybeSingle();if(error)throw error;
-    const reviewForm=document.createElement('form');reviewForm.style.cssText='margin-top:12px;padding-top:10px;border-top:1px solid var(--line)';
-    const label=document.createElement('label');label.textContent=existing?'Editar sua avaliação':'Avalie este atendimento';reviewForm.append(label);
-    const stars=document.createElement('select');stars.required=true;stars.style.margin='8px 0';for(let n=1;n<=5;n++){const option=document.createElement('option');option.value=String(n);option.textContent=n+' estrela'+(n>1?'s':'');stars.append(option)}stars.value=String(existing?.rating||5);reviewForm.append(stars);
-    const comment=document.createElement('textarea');comment.required=true;comment.maxLength=1000;comment.rows=3;comment.placeholder='Conte como foi sua experiência';comment.value=existing?.comment||'';reviewForm.append(comment);
-    const save=document.createElement('button');save.type='submit';save.className='btn small primary';save.textContent=existing?'Atualizar avaliação':'Publicar avaliação';reviewForm.append(save);
-    reviewForm.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{const payload={appointment_id:appointment.id,user_id:currentUser.id,professional_id:appointment.professional_id,rating:Number(stars.value),comment:comment.value.trim()};const result=existing?await cloud.from('professional_reviews').update({rating:payload.rating,comment:payload.comment,updated_at:new Date().toISOString()}).eq('id',existing.id):await cloud.from('professional_reviews').insert(payload);if(result.error)throw result.error;toast('Avaliação salva.');await loadProfessionalArea()}catch(err){save.disabled=false;toast(err.message||'Não foi possível salvar a avaliação.')}};
-    card.append(reviewForm);
+    const reviewPanel=document.createElement('section');reviewPanel.className='review-panel';
+    const showReadOnly=review=>{
+     reviewPanel.replaceChildren();
+     const title=document.createElement('h4');title.textContent='Sua avaliação';reviewPanel.append(title);
+     const starsText=document.createElement('p');starsText.style.color='var(--accent)';starsText.style.margin='0';starsText.textContent='★'.repeat(Number(review.rating))+'☆'.repeat(5-Number(review.rating))+'  '+review.rating+'/5';reviewPanel.append(starsText);
+     const commentText=document.createElement('p');commentText.className='review-comment';commentText.textContent=review.comment;reviewPanel.append(commentText);
+     const createdAt=review.created_at?new Date(review.created_at):null,updatedAt=review.updated_at?new Date(review.updated_at):null;
+     if(updatedAt&&createdAt&&updatedAt.getTime()-createdAt.getTime()>1000){const edited=document.createElement('p');edited.className='review-meta';edited.textContent='Editada em '+updatedAt.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});reviewPanel.append(edited)}
+     const actionsRow=document.createElement('div');actionsRow.className='review-actions';
+     const editButton=document.createElement('button');editButton.type='button';editButton.className='btn small';editButton.textContent='Editar avaliação';editButton.onclick=()=>showEditor(review);
+     actionsRow.append(editButton);reviewPanel.append(actionsRow);
+    };
+    const showEditor=review=>{
+     reviewPanel.replaceChildren();
+     const title=document.createElement('h4');title.textContent=review?'Editar avaliação':'Como foi sua experiência?';reviewPanel.append(title);
+     const ratingLabel=document.createElement('label');ratingLabel.textContent='Sua nota';ratingLabel.className='muted';ratingLabel.style.fontSize='12px';reviewPanel.append(ratingLabel);
+     const stars=document.createElement('select');stars.className='review-stars';stars.required=true;stars.setAttribute('aria-label','Nota de 1 a 5 estrelas');
+     for(let n=1;n<=5;n++){const option=document.createElement('option');option.value=String(n);option.textContent=n+' estrela'+(n>1?'s':'');stars.append(option)}
+     stars.value=String(review?.rating||5);reviewPanel.append(stars);
+     const commentLabel=document.createElement('label');commentLabel.textContent='Comentário';commentLabel.className='muted';commentLabel.style.fontSize='12px';reviewPanel.append(commentLabel);
+     const comment=document.createElement('textarea');comment.required=true;comment.maxLength=1000;comment.rows=4;comment.placeholder='Compartilhe como foi o atendimento, a comunicação e sua experiência.';comment.value=review?.comment||'';reviewPanel.append(comment);
+     const hint=document.createElement('p');hint.className='review-meta';hint.textContent='Seu comentário ficará visível no perfil do profissional.';reviewPanel.append(hint);
+     const actionsRow=document.createElement('div');actionsRow.className='review-actions';
+     const save=document.createElement('button');save.type='submit';save.className='btn small primary';save.textContent=review?'Salvar alterações':'Publicar avaliação';
+     const cancel=document.createElement('button');cancel.type='button';cancel.className='btn small';cancel.textContent='Cancelar';cancel.onclick=()=>review?showReadOnly(review):reviewPanel.remove();
+     actionsRow.append(save,cancel);
+     const form=document.createElement('form');form.onsubmit=async e=>{
+      e.preventDefault();if(comment.value.trim().length<3){toast('Escreva pelo menos 3 caracteres no comentário.');return}
+      save.disabled=true;
+      try{
+       const payload={appointment_id:appointment.id,user_id:currentUser.id,professional_id:appointment.professional_id,rating:Number(stars.value),comment:comment.value.trim()};
+       const result=review?await cloud.from('professional_reviews').update({rating:payload.rating,comment:payload.comment,updated_at:new Date().toISOString()}).eq('id',review.id):await cloud.from('professional_reviews').insert(payload);
+       if(result.error)throw result.error;
+       toast(review?'Avaliação atualizada.':'Avaliação publicada.');await loadProfessionalArea();
+      }catch(err){save.disabled=false;toast(err.message||'Não foi possível salvar a avaliação.')}
+     };
+     Array.from(reviewPanel.children).forEach(el=>form.append(el));form.append(actionsRow);reviewPanel.append(form);
+    };
+    if(existing)showReadOnly(existing);else showEditor(null);
+    card.append(reviewPanel);
    }
   }
   if(actions.childElementCount)card.append(actions);root.append(card);
@@ -988,26 +1023,19 @@ function renderProfessionalDirectory(){
  if(!directoryProfessionals.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Ainda não há profissionais aprovados no diretório.';root.append(empty);return}
  if(!filtered.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='Nenhum profissional encontrado com esses filtros. Tente ampliar a distância ou alterar a cidade/estado.';root.append(empty);return}
  filtered.forEach(p=>{
-  const card=document.createElement('div');card.className='exercise';card.style.marginBottom='9px';
+  const card=document.createElement('article');card.className='exercise directory-card';card.style.marginBottom='9px';card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label','Abrir perfil de '+p.full_name);
+  const open=()=>openProfessionalProfile(p);
+  card.addEventListener('click',e=>{if(e.target.closest('a,button,input,select,textarea'))return;open()});
+  card.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target===card){e.preventDefault();open()}});
   const info=document.createElement('div');info.style.flex='1';
-  if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Foto de '+p.full_name;photo.loading='lazy';photo.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:50%;float:right;margin:0 0 8px 12px;border:1px solid var(--line)';info.append(photo)}
+  if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Abrir perfil de '+p.full_name;photo.loading='lazy';photo.style.cssText='width:76px;height:76px;object-fit:cover;border-radius:50%;float:right;margin:0 0 8px 12px;border:1px solid var(--line);cursor:pointer';photo.addEventListener('click',open);info.append(photo)}
   const name=document.createElement('h3');name.textContent=p.full_name;info.append(name);
-  const location=document.createElement('p');location.textContent=[p.city,p.state].filter(Boolean).join(' / ')||'Localização não informada';info.append(location);
-  if(p._distanceKm!==null){const distance=document.createElement('p');distance.textContent='Aproximadamente '+(p._distanceKm<10?p._distanceKm.toFixed(1).replace('.',','):Math.round(p._distanceKm))+' km de você';distance.style.color='var(--accent)';info.append(distance)}
-  else if(directoryUserLocation){const noDistance=document.createElement('p');noDistance.textContent='Distância indisponível para este perfil';noDistance.className='muted';info.append(noDistance)}
-  const cref=document.createElement('p');cref.textContent='CREF: '+p.cref_number+' / '+p.cref_state;info.append(cref);
-  if(Number(p.review_count)>0){const rating=document.createElement('p');rating.textContent='★ '+Number(p.average_rating).toFixed(1).replace('.',',')+' · '+p.review_count+' avaliações';rating.style.color='var(--accent)';info.append(rating)}
-  if((p.payment_methods||[]).length){const payments=document.createElement('p');payments.textContent='Pagamento: '+paymentMethodLabels(p.payment_methods).join(' · ');info.append(payments)}
-  if(p.price_assessment!==null&&p.price_assessment!==undefined){const price=document.createElement('p');price.textContent='Avaliação: '+formatBRL(p.price_assessment);info.append(price)}
-  if(p.bio){const bio=document.createElement('p');bio.textContent=p.bio;bio.style.marginTop='7px';info.append(bio)}
-  if((p.specialties||[]).length){const tags=document.createElement('p');tags.textContent='Especialidades: '+p.specialties.join(', ');info.append(tags)}
-  if((p.modalities||[]).length){const modes=document.createElement('p');modes.textContent='Atendimento: '+p.modalities.join(', ');info.append(modes)}
+  const location=document.createElement('p');location.className='muted';location.textContent=[p.city,p.state].filter(Boolean).join(' / ')||'Localização não informada';info.append(location);
+  if(p._distanceKm!==null){const distance=document.createElement('p');distance.textContent='Aproximadamente '+(p._distanceKm<10?p._distanceKm.toFixed(1).replace('.',','):Math.round(p._distanceKm))+' km de você';distance.style.color='var(--accent)';distance.style.fontSize='12px';info.append(distance)}
+  if(Number(p.review_count)>0){const rating=document.createElement('p');rating.textContent='★ '+Number(p.average_rating).toFixed(1).replace('.',',')+' · '+p.review_count+' avaliações';rating.style.color='var(--accent)';rating.style.fontSize='13px';info.append(rating)}
+  if((p.specialties||[]).length){const specialties=document.createElement('p');specialties.className='muted';specialties.style.fontSize='12px';specialties.textContent=p.specialties.slice(0,3).join(' · ');info.append(specialties)}
   const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='10px';
-  const detailsButton=document.createElement('button');detailsButton.type='button';detailsButton.className='btn small';detailsButton.textContent='Ver perfil';detailsButton.onclick=()=>openProfessionalProfile(p);actions.append(detailsButton);
-  const wa=safeContactHref(p.whatsapp,'whatsapp'),email=safeContactHref(p.contact_email,'email');
-  if(wa){const a=document.createElement('a');a.className='btn small';a.href=wa;a.target='_blank';a.rel='noopener noreferrer';a.textContent='WhatsApp';actions.append(a)}
-  if(email){const a=document.createElement('a');a.className='btn small';a.href=email;a.textContent='E-mail';actions.append(a)}
-  if(!wa&&!email){const muted=document.createElement('span');muted.className='muted';muted.textContent='Contato não informado';actions.append(muted)}
+  const detailsButton=document.createElement('button');detailsButton.type='button';detailsButton.className='btn small';detailsButton.textContent='Ver perfil';detailsButton.onclick=open;actions.append(detailsButton);
   info.append(actions);card.append(info);root.append(card);
  });
 }
