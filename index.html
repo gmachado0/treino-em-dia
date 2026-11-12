@@ -832,6 +832,37 @@ function haversineKm(aLat,aLon,bLat,bLon){
  const x=Math.sin(dLat/2)**2+Math.cos(rad(aLat))*Math.cos(rad(bLat))*Math.sin(dLon/2)**2;
  return 6371*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
+function openProfessionalProfile(p){
+ const overlay=document.createElement('div');
+ overlay.id='professionalProfileOverlay';
+ overlay.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto';
+ const panel=document.createElement('div');
+ panel.style.cssText='background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:18px;width:min(100%,560px);max-height:90vh;overflow-y:auto;padding:20px;position:relative';
+ const close=document.createElement('button');close.type='button';close.className='btn small';close.textContent='Fechar';close.style.cssText='float:right';close.onclick=()=>overlay.remove();panel.append(close);
+ const header=document.createElement('div');header.style.cssText='display:flex;gap:16px;align-items:center;clear:both;padding-top:12px';
+ if(p.profile_photo_url){const photo=document.createElement('img');photo.src=p.profile_photo_url;photo.alt='Foto de '+p.full_name;photo.style.cssText='width:112px;height:112px;object-fit:cover;border-radius:50%;border:1px solid var(--line);flex-shrink:0';header.append(photo)}
+ const titleWrap=document.createElement('div');const name=document.createElement('h2');name.textContent=p.full_name;name.style.margin='0 0 6px';titleWrap.append(name);
+ const cref=document.createElement('p');cref.textContent='CREF: '+p.cref_number+'/'+p.cref_state;cref.className='muted';titleWrap.append(cref);
+ const location=document.createElement('p');location.textContent=[p.city,p.state].filter(Boolean).join(' / ')||'Localização não informada';titleWrap.append(location);header.append(titleWrap);panel.append(header);
+ const addSection=(heading,value)=>{
+  if(!value)return;
+  const section=document.createElement('section');section.style.cssText='margin-top:18px;border-top:1px solid var(--line);padding-top:13px';
+  const h=document.createElement('h3');h.textContent=heading;h.style.margin='0 0 7px';section.append(h);
+  const body=document.createElement('p');body.textContent=value;body.style.whiteSpace='pre-wrap';body.style.margin='0';section.append(body);panel.append(section);
+ };
+ addSection('Sobre o profissional',p.bio);
+ addSection('Especialidades',(p.specialties||[]).join(', '));
+ addSection('Modalidades de atendimento',(p.modalities||[]).join(', '));
+ addSection('Avaliações','Ainda não há avaliações disponíveis. A contagem e a nota média poderão aparecer aqui quando o sistema de avaliações for ativado.');
+ const contacts=document.createElement('div');contacts.className='actions';contacts.style.marginTop='18px';
+ const wa=safeContactHref(p.whatsapp,'whatsapp'),email=safeContactHref(p.contact_email,'email');
+ if(wa){const a=document.createElement('a');a.className='btn primary';a.href=wa;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Conversar pelo WhatsApp';contacts.append(a)}
+ if(email){const a=document.createElement('a');a.className='btn';a.href=email;a.textContent='Enviar e-mail';contacts.append(a)}
+ if(contacts.childElementCount)panel.append(contacts);
+ overlay.append(panel);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+ document.addEventListener('keydown',function onKey(e){if(e.key==='Escape'){overlay.remove();document.removeEventListener('keydown',onKey)}});
+ document.body.append(overlay);
+}
 function renderProfessionalDirectory(){
  const root=$('#professionalDirectory');root.replaceChildren();
  const cityFilter=normalizeDirectoryText($('#directoryCityFilter')?.value);
@@ -864,6 +895,7 @@ function renderProfessionalDirectory(){
   if((p.specialties||[]).length){const tags=document.createElement('p');tags.textContent='Especialidades: '+p.specialties.join(', ');info.append(tags)}
   if((p.modalities||[]).length){const modes=document.createElement('p');modes.textContent='Atendimento: '+p.modalities.join(', ');info.append(modes)}
   const actions=document.createElement('div');actions.className='actions';actions.style.marginTop='10px';
+  const detailsButton=document.createElement('button');detailsButton.type='button';detailsButton.className='btn small';detailsButton.textContent='Ver perfil';detailsButton.onclick=()=>openProfessionalProfile(p);actions.append(detailsButton);
   const wa=safeContactHref(p.whatsapp,'whatsapp'),email=safeContactHref(p.contact_email,'email');
   if(wa){const a=document.createElement('a');a.className='btn small';a.href=wa;a.target='_blank';a.rel='noopener noreferrer';a.textContent='WhatsApp';actions.append(a)}
   if(email){const a=document.createElement('a');a.className='btn small';a.href=email;a.textContent='E-mail';actions.append(a)}
