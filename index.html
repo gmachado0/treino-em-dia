@@ -894,6 +894,7 @@ function openProfessionalProfile(p){
     const meta=document.createElement('p');meta.style.cssText='font-size:12px;margin:0 0 7px;display:flex;align-items:center;gap:7px;flex-wrap:wrap';
     const score=document.createElement('strong');score.style.color='var(--accent)';score.textContent=Number(review.rating).toFixed(1).replace('.',',');meta.append(score);
     const stars=document.createElement('span');stars.style.color='var(--accent)';stars.textContent='★'.repeat(Number(review.rating));meta.append(stars);
+    const emptyStars=document.createElement('span');emptyStars.style.color='var(--muted)';emptyStars.textContent='☆'.repeat(Math.max(0,5-Number(review.rating)));meta.append(emptyStars);
     const date=document.createElement('span');date.className='muted';date.textContent=review.created_at?new Date(review.created_at).toLocaleDateString('pt-BR'):' ';meta.append(date);item.append(meta);
     const comment=document.createElement('p');comment.textContent=review.comment;comment.style.cssText='font-size:13px;line-height:1.45;margin:0;white-space:pre-wrap';item.append(comment);
     reviewsSection.append(item);
@@ -1017,7 +1018,7 @@ async function loadAppointments(){
     const showReadOnly=review=>{
      reviewPanel.replaceChildren();
      const title=document.createElement('h4');title.textContent='Sua avaliação';title.style.cssText='margin:0 0 5px;font-size:14px';reviewPanel.append(title);
-     const starsText=document.createElement('p');starsText.style.cssText='color:var(--accent);margin:0 0 7px;font-size:12px';starsText.textContent=Number(review.rating).toFixed(1).replace('.',',')+'  '+'★'.repeat(Number(review.rating))+'  ·  '+(review.created_at?new Date(review.created_at).toLocaleDateString('pt-BR'):'');reviewPanel.append(starsText);
+     const starsText=document.createElement('p');starsText.style.cssText='margin:0 0 7px;font-size:12px';const score=document.createElement('strong');score.textContent=Number(review.rating).toFixed(1).replace('.',',')+'  ';starsText.append(score);const filledStars=document.createElement('span');filledStars.style.color='var(--accent)';filledStars.textContent='★'.repeat(Number(review.rating));starsText.append(filledStars);const unfilledStars=document.createElement('span');unfilledStars.style.color='var(--muted)';unfilledStars.textContent='☆'.repeat(Math.max(0,5-Number(review.rating)));starsText.append(unfilledStars);const reviewDate=document.createElement('span');reviewDate.className='muted';reviewDate.textContent='  ·  '+(review.created_at?new Date(review.created_at).toLocaleDateString('pt-BR'):'');starsText.append(reviewDate);reviewPanel.append(starsText);
      const commentText=document.createElement('p');commentText.className='review-comment';commentText.style.cssText='margin:0;font-size:13px;line-height:1.45';commentText.textContent=review.comment;reviewPanel.append(commentText);
      const createdAt=review.created_at?new Date(review.created_at):null,updatedAt=review.updated_at?new Date(review.updated_at):null;
      if(updatedAt&&createdAt&&updatedAt.getTime()-createdAt.getTime()>1000){const edited=document.createElement('p');edited.className='review-meta';edited.textContent='Editada em '+updatedAt.toLocaleDateString('pt-BR')+' às '+updatedAt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});reviewPanel.append(edited)}
